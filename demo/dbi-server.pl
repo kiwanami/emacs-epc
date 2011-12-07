@@ -1,7 +1,5 @@
 #!/usr/bin/perl
 
-# (setenv "PERL5LIB" "/home/sakurai/nwork/apps/emacs-edbc/exlib/lib/perl5/x86_64-linux:/home/sakurai/nwork/apps/emacs-edbc/exlib/lib/perl5/:/home/sakurai/nwork/apps/emacs-edbc/RPC-EPC/lib" )
-
 use RPC::EPC::Service;
 use Data::Dumper;
 use DBI;

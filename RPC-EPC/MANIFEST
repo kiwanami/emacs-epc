@@ -1,0 +1,19 @@
+Build.PL
+Changes
+ignore.txt
+lib/RPC/EPC/Service.pm
+Makefile.PL
+MANIFEST			This list of files
+README
+t/00.load.t
+t/01.primitives.t
+t/02.process.t
+t/03.echo.t
+t/04.add.t
+t/05.errors.t
+t/_add.pl
+t/_echo.pl
+t/_errors.pl
+t/perlcritic.t
+t/pod-coverage.t
+t/pod.t

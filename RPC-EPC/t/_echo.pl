@@ -1,17 +1,13 @@
 #!/usr/bin/perl
 
 use RPC::EPC::Service;
+use Data::Dumper;
 
 sub echo_test {
     my $methods = {
         'echo' => sub {
-            my $args = shift;
-            return $args;
-        },
-        'add' => sub {
-            my $args_ref = shift;
-            my ($a,$b) = @$args_ref;
-            return $a + $b;
+          my $args = shift;
+          return $args;
         }
     };
     my $server = RPC::EPC::Service->new(8888, $methods);
@@ -19,4 +15,3 @@ sub echo_test {
 }
 
 echo_test();
-
