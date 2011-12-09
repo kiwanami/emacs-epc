@@ -356,21 +356,14 @@ This document describes RPC::EPC::Service version 0.0.1
 =head2 Server code
 
     use RPC::EPC::Service;
-    use Data::Dumper;
     
-    sub add_test {
-        my $methods = {
-            'add' => sub {
-                my $args_ref = shift;
-                my ($a,$b) = @$args_ref;
-                return $a + $b;
-            }
-        };
-        my $server = RPC::EPC::Service->new(8888, $methods);
-        $server->start;
-    }
-    
-    add_test();
+    my $server = RPC::EPC::Service->new(8888, {
+        'add' => sub {
+            my $args_ref = shift;
+            my ($a,$b) = @$args_ref;
+            return $a + $b;
+        });
+    $server->start;
 
 =head2 Client code
 
@@ -386,69 +379,145 @@ This document describes RPC::EPC::Service version 0.0.1
 
 =head1 DESCRIPTION
 
-This module enables to connect the other process with the S-expression protocol, like the Swank protocol of the SLIME.
+This module enables to connect the other process with the S-expression
+protocol, like the Swank protocol of the SLIME.
 
 SLIME : http://common-lisp.net/project/slime/
 
-The primary objective is for users to make some Emacs extensions with the Perl and CPAN.
+The primary objective is for users to make some Emacs extensions with
+the Perl and CPAN.
 
 =head2 Protocol
 
 The encoding format is the S-expression.
-The TCP connection is the communication layer.
-Because the RPC session is written in the async manner, the programs can call the procedures asynchronously.
+
+The TCP socket is employed by the communication.
+
+Because the RPC session is written in the async manner, the programs
+can call the procedures asynchronously.
 
 =head2 Object Serialization
 
-Following types can be translated:
+This module can translate following types:
+
 =over 4
-=item Number
-=item String
-=item Array
-=item Hashe
+
+=item *
+undef
+
+=item *
+Number
+
+=item *
+String
+
+=item *
+Array
+
+=item *
+Hash
+
+=item *
+Complex of Array and Hash.
+
 =back
 
-The complex objects consisted of Array and Hash are supported.
 
 =head1 INTERFACE
 
-=head2 Server side
+=head2 Server and Client Commons
 
-=head3 new
-Create a server object.
-If port number is 0 or undef, the number is decided by the OS.
+=head3 C<new>
+
+  $service = RPC::EPC::Service->new($port, $handlers);
+
+Create a server object. If port number is 0 or undef, the number is
+decided by the OS.
+
+The C<$handlers> object is a hash of method names and sub blocks,
+which methods are called by the peer process. Methods can be also 
+defined by C<define_method> after the initialization.
 
 =head3 define_method
-Define a method which is called by the client.
 
-=head3 start
-Start the server and wait for the client connection.
+  $service->define_method($method_name, sub { .... });
+
+Define a method which is called by the peer process.
 
 =head3 call_method
-Call the client's method.
+
+  $ret = $service->call_method($method_name, $args);
+  print $ret->recv;
+
+Call the peer's method. The arguments should be packed in one object,
+such as Array and Hash.
+
+This method returns immediately, not waiting for the result, and value
+C<$ret> is C<AnyEvent::condvar> object. To obtain the result, the
+program calls the C<recv> method, because the peer's task is executed
+concurrently and the result is sent asynchronously.
+
+The C<recv> method may raise the error. The error has two types, the
+peer's program (Application Error) and the RPC stack (RPC Error).
+
+The Application Error is a normal error which is caused by peer's
+program, such as 'division by zero', 'file not found' and so on. The
+programmers are responsible to this type errors, recovering error
+handling or just fixing bugs.
+
+The RPC Error is a communication error which is caused by RPC stack,
+such as 'connection closed', 'method not found', 'serialization error'
+and so on. This type errors are caused by environment problems, bugs
+of peer's program, our side one or the RPC stack.
+
+Here is a sample robust code:
+
+  $ret = $service->call_method($method_name, $args);
+  eval {
+    print $ret->recv; # normal result
+  };
+  if ($@) {
+    # Error handling
+    if ($@->[0] eq "ERROR") {
+      # Application Error
+      print $@->[1];  # error message
+    } elsif ($@->[0] eq "EPC-ERROR") {
+      # RPC Error
+      print $@->[1];  # error message
+    }
+  }
+
+=head2 Server side
+
+=head3 start
+
+  $service->start;
+
+Initialize the connection port and wait for the client connection.
+This method starts the event loop and blocks the control.
 
 =head2 Client side
 
-=head3 new
-Create a client object.
-
 =head3 client_start
+
+  $service->client_start;
+
 Establish the connection to the server.
+If connection failed, it will die.
 
 =head3 stop
+
+  $service->client_start;
+
 Shutdown the connection.
-
-=head3 define_method
-Define a method which is called by the server.
-
-=head3 call_method
-Call the server's method.
 
 
 =head2 Utilities
 
 =head3 to_sexp
+
 Translate a perl object into S-expression string.
+In normal use, serializing and unserializing are applied automatically.
 
 =head1 AUTHOR
 
