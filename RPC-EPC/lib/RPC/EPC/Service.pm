@@ -4,7 +4,7 @@ use warnings;
 use strict;
 use Carp;
 
-use version; our $VERSION = qv('0.0.1');
+use version; our $VERSION = qv('0.0.2');
 
 use base 'Exporter';
 
@@ -348,7 +348,7 @@ RPC::EPC::Service - An Asynchronous Remote Procedure Stack.
 
 =head1 VERSION
 
-This document describes RPC::EPC::Service version 0.0.1
+This document describes RPC::EPC::Service version 0.0.2
 
 
 =head1 SYNOPSIS
@@ -507,7 +507,7 @@ If connection failed, it will die.
 
 =head3 stop
 
-  $service->client_start;
+  $service->stop;
 
 Shutdown the connection.
 
@@ -516,7 +516,7 @@ Shutdown the connection.
 
 =head3 to_sexp
 
-Translate a perl object into S-expression string.
+Translate a Perl object into S-expression string.
 In normal use, serializing and unserializing are applied automatically.
 
 =head1 AUTHOR
@@ -524,7 +524,7 @@ In normal use, serializing and unserializing are applied automatically.
 Masashi Sakurai  C<< <m.sakurai@kiwanami.net> >>
 
 
-=head1 LICENCE AND COPYRIGHT
+=head1 LICENSE AND COPYRIGHT
 
 Copyright (c) 2011, Masashi Sakurai C<< <m.sakurai@kiwanami.net> >>. All rights reserved.
 
@@ -546,7 +546,7 @@ NECESSARY SERVICING, REPAIR, OR CORRECTION.
 
 IN NO EVENT UNLESS REQUIRED BY APPLICABLE LAW OR AGREED TO IN WRITING
 WILL ANY COPYRIGHT HOLDER, OR ANY OTHER PARTY WHO MAY MODIFY AND/OR
-REDISTRIBUTE THE SOFTWARE AS PERMITTED BY THE ABOVE LICENCE, BE
+REDISTRIBUTE THE SOFTWARE AS PERMITTED BY THE ABOVE LICENSE, BE
 LIABLE TO YOU FOR DAMAGES, INCLUDING ANY GENERAL, SPECIAL, INCIDENTAL,
 OR CONSEQUENTIAL DAMAGES ARISING OUT OF THE USE OR INABILITY TO USE
 THE SOFTWARE (INCLUDING BUT NOT LIMITED TO LOSS OF DATA OR DATA BEING

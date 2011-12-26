@@ -8,6 +8,8 @@ my $builder = Module::Build->new(
     dist_author         => 'Masashi Sakurai <m.sakurai@kiwanami.net>',
     dist_version_from   => 'lib/RPC/EPC/Service.pm',
     requires => {
+        'AnyEvent' => 6.1,
+        'Data::SExpression' => 0.41,
         'Test::More' => 0,
         'version'    => 0,
     },

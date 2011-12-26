@@ -17,3 +17,5 @@ t/_errors.pl
 t/perlcritic.t
 t/pod-coverage.t
 t/pod.t
+META.yml
+META.json
