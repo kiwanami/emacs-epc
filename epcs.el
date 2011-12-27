@@ -103,13 +103,11 @@ This variable is used for the management purpose.")
   (epc:log "EPCS: >> Connection accept: %S" process)
   (lexical-let* ((connection-id (epc:uid))
                  (connection-name (format "epc con %s" connection-id))
-                 (filter-buffer (epc:make-procbuf (format "*epc %s buffer*" connection-id)))
                  (channel (cc:signal-channel connection-name))
                  (connection (make-epc:connection 
                               :name connection-name
                               :process process
                               :buffer (process-buffer process)
-                              :filter-buffer filter-buffer
                               :channel channel)))
     (epc:log "EPCS: >> Connection establish")
     (set-process-coding-system process 'binary 'binary)

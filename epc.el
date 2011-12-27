@@ -24,6 +24,7 @@
 
 ;;; Code:
 
+(eval-when-compile (require 'cl))
 (require 'concurrent)
 
 
@@ -65,7 +66,13 @@
 (defun epc:uid ()
   (incf epc:uid))
 
-(defstruct epc:connection name process buffer filter-buffer channel)
+;; epc:connection structure
+;;   name  : 
+;;   process : 
+;;   buffer : 
+;;   channel  :
+
+(defstruct epc:connection name process buffer channel)
 
 (defun epc:connect (host port)
   "[internal] Connect the server, initialize the process and
@@ -76,13 +83,11 @@ return epc:connection object."
                  (connection-buf (epc:make-procbuf (format "*%s*" connection-name)))
                  (connection-process
                   (open-network-stream connection-name connection-buf host port))
-                 (filter-buffer (epc:make-procbuf (format "*epc %s buffer*" connection-id)))
                  (channel (cc:signal-channel connection-name))
                  (connection (make-epc:connection 
                               :name connection-name
                               :process connection-process
                               :buffer connection-buf
-                              :filter-buffer filter-buffer
                               :channel channel)))
     (epc:log ">> Connection establish")
     (set-process-coding-system  connection-process 'binary 'binary)
@@ -111,14 +116,12 @@ return epc:connection object."
   (lexical-let
       ((process (epc:connection-process connection))
        (buf (epc:connection-buffer connection))
-       (filter (epc:connection-filter-buffer connection))
        (name (epc:connection-name connection)))
     (epc:log "!! Disconnect [%s]" name)
     (when process
       (set-process-sentinel process nil)
       (delete-process process)
-      (when (get-buffer buf) (kill-buffer buf))
-      (when (get-buffer filter) (kill-buffer filter)))
+      (when (get-buffer buf) (kill-buffer buf)))
     (epc:log "!! Disconnected finished [%s]" name)))
 
 (defun epc:process-filter (connection process message)
@@ -202,6 +205,7 @@ This is more compatible with the CL reader."
 
 ;; epc:manager
 ;;   port       : port number
+;;   server-process : process object for the peer
 ;;   connection : epc:connection instance
 ;;   methods    : alist of method (name . function)
 ;;   sessions   : alist of session (id . deferred)
@@ -426,10 +430,14 @@ The list is consisted of lists of strings:
     (epc:manager-send mngr 'methods uid)
     d))
 
-(defun epc:call-sync (mngr method-name args)
+(defun epc:call-method-sync (mngr method-name args)
   "Call peer's method with args synchronously, and return a result."
-  ;; TODO
-  )
+  (lexical-let ((result 'epc:nothing))
+    (save-current-buffer
+      (accept-process-output (epc:manager-server-process
+                             sec msec t)))
+    
+  ))
 
 (provide 'epc)
 ;;; epc.el ends here
