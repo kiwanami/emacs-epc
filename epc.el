@@ -26,7 +26,7 @@
 
 (eval-when-compile (require 'cl))
 (require 'concurrent)
-
+(require 'ctable)
 
 
 ;;==================================================
@@ -66,6 +66,8 @@
 (defun epc:uid ()
   (incf epc:uid))
 
+(defvar epc:accept-process-timeout 100 "[internal] msec")
+
 ;; epc:connection structure
 ;;   name  : 
 ;;   process : 
@@ -98,6 +100,11 @@ return epc:connection object."
                           (lambda (p e) 
                             (epc:process-sentinel connection p e)))
     connection))
+
+(defun epc:connection-reset (connection)
+  "[internal] Reset the connection for restarting the process."
+  (cc:signal-disconnect-all (epc:connection-channel connection))
+  connection)
 
 (defun epc:process-sentinel (connection process msg)
   (epc:log "!! Process Sentinel [%s] : %S : %S"  
@@ -204,12 +211,13 @@ This is more compatible with the CL reader."
 ;; High Level Interface
 
 ;; epc:manager
-;;   port       : port number
 ;;   server-process : process object for the peer
+;;   commands   : a list of (prog . args)
+;;   port       : port number
 ;;   connection : epc:connection instance
 ;;   methods    : alist of method (name . function)
 ;;   sessions   : alist of session (id . deferred)
-(defstruct epc:manager server-process port connection methods sessions)
+(defstruct epc:manager server-process commands port connection methods sessions)
 
 ;; epc:method
 ;;   name       : method name (symbol)   ex: 'test
@@ -221,6 +229,14 @@ This is more compatible with the CL reader."
 (defvar epc:live-connections nil
   "[internal] A list of `epc:manager' objects those currently connect to the epc peer. 
 This variable is for debug purpose.")
+
+(defun epc:live-connections-add (mngr)
+  "[internal] Add the EPC manager object."
+  (push mngr epc:live-connections))
+
+(defun epc:live-connections-delete (mngr)
+  "[internal] Remove the EPC manager object."
+  (setq epc:live-connections (delete mngr epc:live-connections)))
 
 (defun epc:start-epc (server-prog server-args)
   "Start the epc server program and return an epc:manager object."
@@ -237,7 +253,7 @@ This variable is for debug purpose.")
                          server-prog server-args))
          (cont 1) port)
     (while cont
-      (accept-process-output process 0.1)
+      (accept-process-output process 0 epc:accept-process-timeout t)
       (let ((port-str (with-current-buffer process-buffer
                           (buffer-string))))
         (cond
@@ -253,6 +269,7 @@ This variable is for debug purpose.")
           (when (< 30 cont) ; timeout 3 seconds
             (error "Timeout server response."))))))
     (make-epc:manager :server-process process
+                      :commands (cons server-prog server-args)
                       :port port
                       :connection (epc:connect "localhost" port))))
 
@@ -261,7 +278,12 @@ This variable is for debug purpose.")
   (let* ((proc (epc:manager-server-process mngr))
          (buf (and proc (process-buffer proc))))
     (epc:disconnect (epc:manager-connection mngr))
-    (when buf (kill-buffer buf))))
+    (when proc
+      (accept-process-output proc 0 epc:accept-process-timeout t))
+    (when (and proc (equal 'run (process-status proc)))
+      (kill-process proc))
+    (when buf  (kill-buffer buf))
+    (epc:live-connections-delete mngr)))
 
 (defun epc:start-epc-debug (port)
   "[internal] Return an epc:manager instance which is set up partially."
@@ -306,9 +328,47 @@ This variable is for debug purpose.")
                  (epc:handler-methods ,mngr (caadr args))))
             ) do
               (cc:signal-connect channel method body))
+    (epc:live-connections-add mngr)
     mngr))
 
 
+
+(defun epc:manager-status-server-process (mngr)
+  "[internal] Return the status of the process object for the peer process. If the process is nil, return nil."
+  (and mngr
+       (epc:manager-server-process mngr)
+       (process-status (epc:manager-server-process mngr))))
+
+(defun epc:manager-status-connection-process (mngr)
+  "[internal] Return the status of the process object for the connection process."
+  (and (epc:manager-connection mngr)
+       (process-status (epc:connection-process 
+                        (epc:manager-connection mngr)))))
+
+(defun epc:manager-restart-process (mngr)
+  "[internal] Restart the process and reconnect."
+  (cond
+   ((null (epc:manager-commands mngr))
+    (error "Cannot restart this EPC process!"))
+   (t
+    (epc:stop-epc mngr)
+    (let* ((cmds (epc:manager-commands mngr))
+           (new-mngr (epc:start-server (car cmds) (cdr cmds))))
+      (setf (epc:manager-server-process mngr)
+            (epc:manager-server-process new-mngr))
+      (setf (epc:manager-port mngr)
+            (epc:manager-port new-mngr))
+      (setf (epc:manager-connection mngr)
+            (epc:manager-connection new-mngr))
+      (setf (epc:manager-methods mngr)
+            (epc:manager-methods new-mngr))
+      (setf (epc:manager-sessions mngr)
+            (epc:manager-sessions new-mngr))
+      (epc:connection-reset (epc:manager-connection mngr))
+      (epc:init-epc-layer mngr)
+      (epc:live-connections-delete new-mngr)
+      (epc:live-connections-add mngr)
+      mngr))))
 
 (defun epc:manager-send (mngr method &rest messages)
   "[internal] low-level message sending."
@@ -430,14 +490,198 @@ The list is consisted of lists of strings:
     (epc:manager-send mngr 'methods uid)
     d))
 
-(defun epc:call-method-sync (mngr method-name args)
-  "Call peer's method with args synchronously, and return a result."
+(defun epc:sync (mngr d)
+  "Wrap deferred methods with synchronous waiting, and return the result.
+If an exception is occurred, this function throws the error."
   (lexical-let ((result 'epc:nothing))
-    (save-current-buffer
-      (accept-process-output (epc:manager-server-process
-                             sec msec t)))
-    
-  ))
+    (deferred:$ d
+      (deferred:nextc it
+        (lambda (x) (setq result x)))
+      (deferred:error it
+        (lambda (er) (setq result (cons 'error er)))))
+    (while (eq result 'epc:nothing)
+      (save-current-buffer
+        (accept-process-output 
+         (epc:connection-process (epc:manager-connection mngr))
+         0 epc:accept-process-timeout t)))
+    (if (and (consp result) (eq 'error (car result))) 
+        (error (cdr result)) result)))
+
+(defun epc:call-sync (mngr method-name args)
+  "Call peer's method with args synchronously and return the result.
+If an exception is occurred, this function throws the error."
+  (epc:sync mngr (epc:call-deferred mngr method-name args)))
+
+
+
+;;==================================================
+;; Management Interface
+
+(defun epc:controller ()
+  "Display the management interface for EPC processes and connections.
+Process list.
+Session status, statistics and uptime.
+Peer's method list.
+Display process buffer.
+Kill sessions and connections.
+Restart process."
+  (interactive)
+  (let* ((buf-name "*EPC Controller*")
+         (buf (get-buffer buf-name)))
+    (unless (buffer-live-p buf)
+      (setq buf (get-buffer-create buf-name)))
+    (epc:controller-update-buffer buf)
+    (pop-to-buffer buf)))
+
+(defun epc:controller-update-buffer (buf)
+  "[internal] Update buffer for the current epc processes."
+  (let* 
+      ((data (loop
+              for mngr in epc:live-connections collect
+              (list 
+               (epc:manager-server-process mngr)
+               (epc:manager-status-server-process mngr)
+               (epc:manager-status-connection-process mngr)
+               (epc:manager-commands mngr)
+               (epc:manager-port mngr)
+               (length (epc:manager-methods mngr))
+               (length (epc:manager-sessions mngr))
+               mngr)))
+       (param (copy-ctbl:param ctbl:default-rendering-param))
+       (cp
+        (ctbl:create-table-component-buffer
+         :buffer buf :width nil
+         :model
+         (make-ctbl:model
+          :column-model
+          (list (make-ctbl:cmodel :title "<Process>" :align 'left)
+                (make-ctbl:cmodel :title "<St. Proc>" :align 'center)
+                (make-ctbl:cmodel :title "<St. Conn>" :align 'center)
+                (make-ctbl:cmodel :title " Command " :align 'left :max-width 30)
+                (make-ctbl:cmodel :title " Port " :align 'right)
+                (make-ctbl:cmodel :title " Methods " :align 'right)
+                (make-ctbl:cmodel :title " Live sessions " :align 'right))
+          :data data)
+         :custom-map epc:controller-keymap
+         :param param)))
+    (pop-to-buffer (ctbl:cp-get-buffer cp))))
+
+(eval-when-compile ; introduce anaphoric variable `cp' and `mngr'.
+  (defmacro epc:controller-with-cp (&rest body)
+    `(let ((cp (ctbl:cp-get-component)))
+       (when cp
+         (let ((mngr (car (last (ctbl:cp-get-selected-data-row cp)))))
+           ,@body)))))
+
+(defun epc:controller-update-command ()
+  (interactive)
+  (epc:controller-with-cp
+    (epc:controller-update-buffer (current-buffer))))
+
+(defun epc:controller-connection-restart-command ()
+  (interactive)
+  (epc:controller-with-cp
+    (let* ((proc (epc:manager-server-process mngr))
+           (msg (format "Restart the EPC process [%s] ? " proc)))
+      (when (and proc (y-or-n-p msg))
+        (epc:manager-restart-process mngr)
+        (epc:controller-update-buffer (current-buffer))))))
+
+(defun epc:controller-connection-kill-command ()
+  (interactive)
+  (epc:controller-with-cp
+    (let* ((proc (epc:manager-server-process mngr))
+           (msg (format "Kill the EPC process [%s] ? " proc)))
+      (when (and proc (y-or-n-p msg))
+        (epc:stop-epc mngr)
+        (epc:controller-update-buffer (current-buffer))))))
+
+(defun epc:controller-connection-buffer-command ()
+  (interactive)
+  (epc:controller-with-cp
+    (switch-to-buffer 
+     (epc:connection-buffer (epc:manager-connection mngr)))))
+
+(defun epc:controller-methods-show-command ()
+  (interactive)
+  
+  )
+
+(defun epc:controller ()
+  "Display the management interface for EPC processes and connections.
+Process list.
+Session status, statistics and uptime.
+Peer's method list.
+Display process buffer.
+Kill sessions and connections.
+Restart process."
+  (interactive)
+  (let* ((buf-name "*EPC Controller*")
+         (buf (get-buffer buf-name)))
+    (unless (buffer-live-p buf)
+      (setq buf (get-buffer-create buf-name)))
+    (epc:controller-update-buffer buf)
+    (pop-to-buffer buf)))
+
+(defun epc:controller-update-buffer (buf)
+  "[internal] Update buffer for the current epc processes."
+  (let* 
+      ((data (loop
+              for mngr in epc:live-connections collect
+              (list 
+               (epc:manager-server-process mngr)
+               (epc:manager-status-server-process mngr)
+               (epc:manager-status-connection-process mngr)
+               (epc:manager-commands mngr)
+               (epc:manager-port mngr)
+               (length (epc:manager-methods mngr))
+               (length (epc:manager-sessions mngr))
+               mngr)))
+       (param (copy-ctbl:param ctbl:default-rendering-param))
+       (cp
+        (ctbl:create-table-component-buffer
+         :buffer buf :width nil
+         :model
+         (make-ctbl:model
+          :column-model
+          (list (make-ctbl:cmodel :title "<Process>" :align 'left)
+                (make-ctbl:cmodel :title "<St. Proc>" :align 'center)
+                (make-ctbl:cmodel :title "<St. Conn>" :align 'center)
+                (make-ctbl:cmodel :title " Command " :align 'left :max-width 30)
+                (make-ctbl:cmodel :title " Port " :align 'right)
+                (make-ctbl:cmodel :title " Methods " :align 'right)
+                (make-ctbl:cmodel :title " Live sessions " :align 'right))
+          :data data)
+         :custom-map epc:controller-keymap
+         :param param)))
+    (pop-to-buffer (ctbl:cp-get-buffer cp))))
+
+(defun epc:define-keymap (keymap-list &optional prefix)
+  "[internal] Keymap utility."
+  (let ((map (make-sparse-keymap)))
+    (mapc 
+     (lambda (i)
+       (define-key map
+         (if (stringp (car i))
+             (read-kbd-macro 
+              (if prefix 
+                  (replace-regexp-in-string "prefix" prefix (car i))
+                (car i)))
+           (car i))
+         (cdr i)))
+     keymap-list)
+    map))
+
+(defvar epc:controller-keymap
+  (epc:define-keymap 
+   '(
+     ("g" . epc:controller-update-command)
+     ("R" . epc:controller-connection-restart-command)
+     ("D" . epc:controller-connection-kill-command)
+     ("K" . epc:controller-connection-kill-command)
+     ("m" . epc:controller-methods-show-command)
+     ("C-m" . epc:controller-connection-buffer-command)
+     )) "Keymap for the controller buffer.")
 
 (provide 'epc)
 ;;; epc.el ends here
