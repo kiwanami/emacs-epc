@@ -11,11 +11,10 @@ t/02.process.t
 t/03.echo.t
 t/04.add.t
 t/05.errors.t
+t/06.query.t
 t/_add.pl
 t/_echo.pl
 t/_errors.pl
-t/perlcritic.t
-t/pod-coverage.t
-t/pod.t
+t/_methods.pl
 META.yml
 META.json

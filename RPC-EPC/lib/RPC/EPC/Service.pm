@@ -4,7 +4,7 @@ use warnings;
 use strict;
 use Carp;
 
-use version; our $VERSION = qv('0.0.3');
+use version; our $VERSION = qv('0.0.4');
 
 use base 'Exporter';
 
@@ -402,7 +402,7 @@ RPC::EPC::Service - An Asynchronous Remote Procedure Stack.
 
 =head1 VERSION
 
-This document describes RPC::EPC::Service version 0.0.3
+This document describes RPC::EPC::Service version 0.0.4
 
 
 =head1 SYNOPSIS
@@ -596,7 +596,7 @@ Masashi Sakurai  C<< <m.sakurai@kiwanami.net> >>
 
 =head1 LICENSE AND COPYRIGHT
 
-Copyright (c) 2011, Masashi Sakurai C<< <m.sakurai@kiwanami.net> >>. All rights reserved.
+Copyright (c) 2011, 2012 Masashi Sakurai C<< <m.sakurai@kiwanami.net> >>. All rights reserved.
 
 This module is free software; you can redistribute it and/or
 modify it under the same terms as Perl itself. See L<perlartistic>.
