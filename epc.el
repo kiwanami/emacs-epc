@@ -289,6 +289,7 @@ This variable is for debug purpose.")
   "[internal] Return an epc:manager instance which is set up partially."
   (epc:init-epc-layer
    (make-epc:manager :server-process nil
+                     :commands (cons "[DEBUG]" nil)
                      :port port
                      :connection (epc:connect "localhost" port))))
 
@@ -348,7 +349,7 @@ This variable is for debug purpose.")
 (defun epc:manager-restart-process (mngr)
   "[internal] Restart the process and reconnect."
   (cond
-   ((null (epc:manager-commands mngr))
+   ((null (epc:manager-server-process mngr))
     (error "Cannot restart this EPC process!"))
    (t
     (epc:stop-epc mngr)
@@ -387,7 +388,7 @@ This variable is for debug purpose.")
          (loop for i in (epc:manager-methods mngr)
                collect 
                (list
-                (epc:method-name i) 
+                (epc:method-name i)
                 (or (epc:method-arg-specs i) "")
                 (or (epc:method-docstring i) "")))))
     (epc:manager-send mngr 'return uid info)))
@@ -604,57 +605,76 @@ Restart process."
 
 (defun epc:controller-methods-show-command ()
   (interactive)
-  
-  )
+  (epc:controller-with-cp
+    (epc:controller-methods mngr)))
 
-(defun epc:controller ()
-  "Display the management interface for EPC processes and connections.
-Process list.
-Session status, statistics and uptime.
-Peer's method list.
-Display process buffer.
-Kill sessions and connections.
-Restart process."
-  (interactive)
-  (let* ((buf-name "*EPC Controller*")
+(defun epc:controller-methods (mngr)
+  "Display a list of methods for the MNGR process."
+  (let* ((buf-name "*EPC Controller/Methods*")
          (buf (get-buffer buf-name)))
     (unless (buffer-live-p buf)
-      (setq buf (get-buffer-create buf-name)))
-    (epc:controller-update-buffer buf)
-    (pop-to-buffer buf)))
+      (setq buf (get-buffer-create buf-name))
+      (with-current-buffer buf
+        (setq buffer-read-only t)))
+    (lexical-let ((buf buf) (mngr mngr))
+      (deferred:$
+        (epc:query-methods-deferred mngr)
+        (deferred:nextc it
+          (lambda (methods)
+            (epc:controller-methods-update-buffer buf mngr methods)
+            (pop-to-buffer buf)))))))
 
-(defun epc:controller-update-buffer (buf)
-  "[internal] Update buffer for the current epc processes."
-  (let* 
-      ((data (loop
-              for mngr in epc:live-connections collect
-              (list 
-               (epc:manager-server-process mngr)
-               (epc:manager-status-server-process mngr)
-               (epc:manager-status-connection-process mngr)
-               (epc:manager-commands mngr)
-               (epc:manager-port mngr)
-               (length (epc:manager-methods mngr))
-               (length (epc:manager-sessions mngr))
-               mngr)))
-       (param (copy-ctbl:param ctbl:default-rendering-param))
-       (cp
-        (ctbl:create-table-component-buffer
-         :buffer buf :width nil
-         :model
-         (make-ctbl:model
-          :column-model
-          (list (make-ctbl:cmodel :title "<Process>" :align 'left)
-                (make-ctbl:cmodel :title "<St. Proc>" :align 'center)
-                (make-ctbl:cmodel :title "<St. Conn>" :align 'center)
-                (make-ctbl:cmodel :title " Command " :align 'left :max-width 30)
-                (make-ctbl:cmodel :title " Port " :align 'right)
-                (make-ctbl:cmodel :title " Methods " :align 'right)
-                (make-ctbl:cmodel :title " Live sessions " :align 'right))
-          :data data)
-         :custom-map epc:controller-keymap
-         :param param)))
-    (pop-to-buffer (ctbl:cp-get-buffer cp))))
+(defface epc:face-title
+  '((((class color) (background light))
+     :foreground "Slategray4" :background "Gray90" :weight bold)
+    (((class color) (background dark))
+     :foreground "maroon2" :weight bold))
+  "Face for titles" :group 'epc)
+
+(defun epc:controller-methods-update-buffer (buf mngr methods)
+  "[internal] Update methods list buffer for the epc process."
+  (with-current-buffer buf
+    (let* ((data 
+            (loop for m in methods collect
+                  (list 
+                   (car m)
+                   (or (nth 1 m) "<Not specified>")
+                   (or (nth 2 m) "<Not specified>"))))
+           (param (copy-ctbl:param ctbl:default-rendering-param))
+           cp buffer-read-only)
+      (erase-buffer)
+      (insert 
+       (propertize 
+        (format "EPC Process : %s\n"
+                (mapconcat 'identity (epc:manager-commands mngr) " "))
+        'face 'epc:face-title) "\n")
+      (setq cp (ctbl:create-table-component-region
+                :model
+                (make-ctbl:model
+                 :column-model
+                 (list (make-ctbl:cmodel :title "Method Name"      :align 'left)
+                       (make-ctbl:cmodel :title "Arguments" :align 'left)
+                       (make-ctbl:cmodel :title "Document"  :align 'left))
+                 :data data)
+                :keymap epc:controller-methods-keymap
+                :param param))
+      (set (make-local-variable 'epc:mngr) mngr)
+      (ctbl:cp-set-selected-cell cp '(0 . 0))
+      (ctbl:cp-get-buffer cp))))
+
+(defun epc:controller-methods-eval-command ()
+  (interactive)
+  (let ((cp (ctbl:cp-get-component)))
+    (when cp
+      (let* ((method-name (car (ctbl:cp-get-selected-data-row cp)))
+             (args (eval-minibuffer
+                    (format "Arguments for calling [%s] : " method-name))))
+        (deferred:$
+          (epc:call-deferred epc:mngr method-name args)
+          (deferred:nextc it
+            (lambda (ret) (message "Result : %S" ret)))
+          (deferred:error it
+            (lambda (err) (message "Error : %S" ret))))))))
 
 (defun epc:define-keymap (keymap-list &optional prefix)
   "[internal] Keymap utility."
@@ -672,8 +692,22 @@ Restart process."
      keymap-list)
     map))
 
+(defun epc:add-keymap (keymap keymap-list &optional prefix)
+  (mapc 
+   (lambda (i)
+     (define-key keymap
+       (if (stringp (car i))
+           (read-kbd-macro 
+            (if prefix 
+                (replace-regexp-in-string "prefix" prefix (car i))
+              (car i)))
+         (car i))
+       (cdr i)))
+   keymap-list)
+  keymap)
+
 (defvar epc:controller-keymap
-  (epc:define-keymap 
+  (epc:define-keymap
    '(
      ("g" . epc:controller-update-command)
      ("R" . epc:controller-connection-restart-command)
@@ -682,6 +716,14 @@ Restart process."
      ("m" . epc:controller-methods-show-command)
      ("C-m" . epc:controller-connection-buffer-command)
      )) "Keymap for the controller buffer.")
+
+(defvar epc:controller-methods-keymap
+  (epc:add-keymap
+   ctbl:table-mode-map
+   '(
+     ("q" . bury-buffer)
+     ("e" . epc:controller-methods-eval-command)
+     )) "Keymap for the controller methods list buffer.")
 
 (provide 'epc)
 ;;; epc.el ends here
