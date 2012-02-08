@@ -121,6 +121,29 @@ sub _nil_to_undef_hash {
   return $hash;
 }
 
+sub _correct_method_spec {
+  my $a = shift;
+  if (ref($a) eq "CODE") {
+    return {'sub' => $a, 'arg_spec' => undef, 'docstring' => undef};
+  } elsif (ref($a) eq "ARRAY") {
+    my ($sub,$arg,$doc) = @$a;
+    return {'sub' => $sub, 'arg_spec' => $arg, 'docstring' => $doc};
+  } elsif (ref($a) eq "HASH") {
+    return $a;
+  } else {
+    return $a;
+  }
+}
+
+sub _correct_method_specs {
+  my $methods = shift;
+  my $ret = {};
+  foreach my $key ( keys %$methods ) {
+    $ret->{$key} = _correct_method_spec( $methods->{$key} );
+  }
+  return $ret;
+}
+
 
 ##################################################
 # Protocol Stacks
@@ -130,7 +153,7 @@ sub new {
   my $cv = AnyEvent->condvar;
   return bless { 'port' => $port,
                  'count' => 0,
-                 'methods' => $methods,
+                 'methods' => _correct_method_specs($methods),
                  'sessions' => {},
                  'wait' => $cv }, $class;
 }
@@ -202,6 +225,7 @@ sub _handle_connection {
       'return' => sub { $self->_return(@_); },
       'return-error' => sub { $self->_return_error(@_); },
       'epc-error' => sub { $self->_epc_error(@_); },
+      'methods' => sub { $self->_query_methods(@_); },
     };
   $self->{handlers} = $handlers;
   $self->_register_event_loop($fh);
@@ -225,7 +249,7 @@ sub _call {
   # print STDERR "CALL:" . Dumper $sexp;
   my $id = shift(@$sexp);
   my $name = shift(@$sexp);
-  my $task = $self->{methods}->{$name};
+  my $task = $self->{methods}->{$name}->{sub};
   if ($task) {
     my $args = _nil_to_undef($sexp->[0]);
     eval {
@@ -285,6 +309,26 @@ sub _epc_error {
   }
 }
 
+sub _query_methods {
+  my ($self, $sexp) = @_;
+  # print STDERR "METHODS:" . Dumper $sexp;
+  my $id = shift(@$sexp);
+  eval {
+    my @ret = ();
+    my $hash = $self->{methods};
+    # print STDERR "HASH:" . Dumper $hash;
+    foreach my $key ( keys %$hash ) {
+      my $method = $hash->{$key};
+      push @ret, [$key, $method->{'arg_spec'}, $method->{'docstring'}];
+    }
+
+    $self->_send_message("(return $id ".to_sexp(\@ret).")");
+  };
+  if ($@) {
+    $self->_send_message("(return-error $id ".to_sexp($@).")");
+  }
+}
+
 sub call_method {
   my $self = shift;
   my $name = shift;
@@ -297,8 +341,18 @@ sub call_method {
 }
 
 sub define_method {
-  my ($self, $name, $task) = @_;
-  $self->{methods}->{$name} = $task;
+  my $self = shift;
+  my $name = shift;
+  $self->{methods}->{$name} = _correct_method_spec(\@_);
+}
+
+sub query_methods {
+  my $self = shift;
+  my $cv = AnyEvent->condvar;
+  my $id = $self->_uid;
+  $self->{sessions}->{$id} = $cv;
+  $self->_send_message("(methods $id)");
+  return $cv;
 }
 
 sub start {
@@ -444,6 +498,16 @@ defined by C<define_method> after the initialization.
 
 Define a method which is called by the peer process.
 
+The following form defines a method with documents for the method
+argument and specifications.
+
+  $service->define_method($method_name,
+      sub { .... },
+      "arg1 arg2",
+      "document for this method");
+
+The documents are referred by the peer process for users to inspect the methods.
+
 =head3 call_method
 
   $ret = $service->call_method($method_name, $args);
@@ -486,6 +550,12 @@ Here is a sample robust code:
       print $@->[1];  # error message
     }
   }
+
+=head3 query_methods
+
+  $service->query_methods();
+
+Define a method which is called by the peer process.
 
 =head2 Server side
 
