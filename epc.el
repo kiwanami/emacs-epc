@@ -35,7 +35,8 @@
 (defvar epc:debug-out nil)
 (defvar epc:debug-buffer "*epc log*")
 
-(setq epc:debug-out t)
+;;(setq epc:debug-out t)
+;;(setq epc:debug-out nil)
 
 (defun epc:log-init ()
   (when (get-buffer epc:debug-buffer)
