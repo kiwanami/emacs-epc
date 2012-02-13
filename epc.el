@@ -211,13 +211,15 @@ This is more compatible with the CL reader."
 ;; High Level Interface
 
 ;; epc:manager
+;;   title      : instance name for displaying on the `epc:controller' UI
 ;;   server-process : process object for the peer
 ;;   commands   : a list of (prog . args)
 ;;   port       : port number
 ;;   connection : epc:connection instance
 ;;   methods    : alist of method (name . function)
 ;;   sessions   : alist of session (id . deferred)
-(defstruct epc:manager server-process commands port connection methods sessions)
+;;   exit-hook  : functions for after shutdown EPC connection
+(defstruct epc:manager title server-process commands port connection methods sessions exit-hooks)
 
 ;; epc:method
 ;;   name       : method name (symbol)   ex: 'test
@@ -237,6 +239,7 @@ This variable is for debug purpose.")
 (defun epc:live-connections-delete (mngr)
   "[internal] Remove the EPC manager object."
   (setq epc:live-connections (delete mngr epc:live-connections)))
+
 
 (defun epc:start-epc (server-prog server-args)
   "Start the epc server program and return an epc:manager object."
@@ -270,6 +273,7 @@ This variable is for debug purpose.")
             (error "Timeout server response."))))))
     (make-epc:manager :server-process process
                       :commands (cons server-prog server-args)
+                      :title (mapconcat 'identity (cons server-prog server-args) " ")
                       :port port
                       :connection (epc:connect "localhost" port))))
 
@@ -283,6 +287,9 @@ This variable is for debug purpose.")
     (when (and proc (equal 'run (process-status proc)))
       (kill-process proc))
     (when buf  (kill-buffer buf))
+    (condition-case err
+        (epc:manager-fire-exit-hook mngr)
+      (error (epc:log "Error on exit-hooks : %S / " err mngr)))
     (epc:live-connections-delete mngr)))
 
 (defun epc:start-epc-debug (port)
@@ -333,6 +340,20 @@ This variable is for debug purpose.")
     mngr))
 
 
+
+(defun epc:manager-add-exit-hook (mngr hook-function)
+  "Register the HOOK-FUNCTION which is called after the EPC connection closed by the EPC controller UI.
+HOOK-FUNCTION is a function with no argument."
+  (let* ((hooks (epc:manager-exit-hooks mngr)))
+    (setf (epc:manager-exit-hooks mngr) (cons hook-function hooks))
+    mngr))
+
+(defun epc:manager-fire-exit-hook (mngr)
+  "[internal] Call exit-hooks functions of MNGR. After calling hooks, this functions clears the hook slot so as not to call doubly."
+  (let* ((hooks (epc:manager-exit-hooks mngr)))
+    (run-hooks hooks)
+    (setf (epc:manager-exit-hooks mngr) nil)
+    mngr))
 
 (defun epc:manager-status-server-process (mngr)
   "[internal] Return the status of the process object for the peer process. If the process is nil, return nil."
@@ -543,6 +564,7 @@ Restart process."
                (epc:manager-server-process mngr)
                (epc:manager-status-server-process mngr)
                (epc:manager-status-connection-process mngr)
+               (epc:manager-title mngr)
                (epc:manager-commands mngr)
                (epc:manager-port mngr)
                (length (epc:manager-methods mngr))
@@ -555,12 +577,13 @@ Restart process."
          :model
          (make-ctbl:model
           :column-model
-          (list (make-ctbl:cmodel :title "<Process>" :align 'left)
-                (make-ctbl:cmodel :title "<St. Proc>" :align 'center)
-                (make-ctbl:cmodel :title "<St. Conn>" :align 'center)
-                (make-ctbl:cmodel :title " Command " :align 'left :max-width 30)
-                (make-ctbl:cmodel :title " Port " :align 'right)
-                (make-ctbl:cmodel :title " Methods " :align 'right)
+          (list (make-ctbl:cmodel :title "<Process>"       :align 'left)
+                (make-ctbl:cmodel :title "<Proc>"          :align 'center)
+                (make-ctbl:cmodel :title "<Conn>"          :align 'center)
+                (make-ctbl:cmodel :title " Title "         :align 'left :max-width 30)
+                (make-ctbl:cmodel :title " Command "       :align 'left :max-width 30)
+                (make-ctbl:cmodel :title " Port "          :align 'right)
+                (make-ctbl:cmodel :title " Methods "       :align 'right)
                 (make-ctbl:cmodel :title " Live sessions " :align 'right))
           :data data)
          :custom-map epc:controller-keymap
