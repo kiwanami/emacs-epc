@@ -693,18 +693,18 @@ Restart process."
     map))
 
 (defun epc:add-keymap (keymap keymap-list &optional prefix)
-  (mapc 
-   (lambda (i)
-     (define-key keymap
-       (if (stringp (car i))
-           (read-kbd-macro 
-            (if prefix 
-                (replace-regexp-in-string "prefix" prefix (car i))
-              (car i)))
-         (car i))
-       (cdr i)))
-   keymap-list)
-  keymap)
+  (loop with nkeymap = (copy-keymap keymap)
+        for i in keymap-list
+        do
+        (define-key nkeymap
+          (if (stringp (car i))
+              (read-kbd-macro 
+               (if prefix 
+                   (replace-regexp-in-string "prefix" prefix (car i))
+                 (car i)))
+            (car i))
+          (cdr i))
+        finally return nkeymap))
 
 (defvar epc:controller-keymap
   (epc:define-keymap
@@ -714,7 +714,8 @@ Restart process."
      ("D" . epc:controller-connection-kill-command)
      ("K" . epc:controller-connection-kill-command)
      ("m" . epc:controller-methods-show-command)
-     ("C-m" . epc:controller-connection-buffer-command)
+     ("C-m" . epc:controller-methods-show-command)
+     ("B" . epc:controller-connection-buffer-command)
      )) "Keymap for the controller buffer.")
 
 (defvar epc:controller-methods-keymap
