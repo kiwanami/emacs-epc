@@ -2,9 +2,10 @@ package RPC::EPC::Service;
 
 use warnings;
 use strict;
+use utf8;
 use Carp;
 
-use version; our $VERSION = qv('0.0.4');
+use version; our $VERSION = qv('0.0.5');
 
 use base 'Exporter';
 
@@ -12,6 +13,7 @@ our @EXPORT = qw(
    to_sexp
 );
 
+use Encode;
 use AnyEvent;
 use AnyEvent::Socket;
 use AnyEvent::Handle;
@@ -65,6 +67,8 @@ sub _to_sexp_string {
 
   # Escape
   $string =~ s/([\x00-\x1F\x7F\x{2028}\x{2029}\\\"\/\b\f\n\r\t])/$REVERSE{$1}/gs;
+
+  $string = Encode::encode_utf8($string) if Encode::is_utf8($string);
 
   # Stringify
   return "\"$string\"";
@@ -194,7 +198,7 @@ sub _register_event_loop {
          return;
        }
        eval {
-         ($sexp, $text) = $ds->read($body);
+         ($sexp, $text) = $ds->read(Encode::decode_utf8($body));
        };
        # print STDERR "SEXP:".Dumper $sexp;
        if ($sexp->[0]) {
