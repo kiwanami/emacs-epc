@@ -18,7 +18,7 @@ ok(ref $ss->{wait}, 'AnyEvent::CondVar');
 
 is(to_sexp("abcd"),"\"abcd\"");
 is(to_sexp("ab'cd"),"\"ab'cd\"");
-is(to_sexp("a\nbcd"),"\"a\\nbcd\"");
+is(to_sexp("a\nbcd"),"\"a\nbcd\"");
 is(to_sexp(undef),"nil");
 is(to_sexp(123), "123");
 

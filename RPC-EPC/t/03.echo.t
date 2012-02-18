@@ -1,4 +1,4 @@
-use Test::More tests => 7;
+use Test::More tests => 8;
 
 use IPC::Open2;
 use RPC::EPC::Service;
@@ -30,6 +30,10 @@ eval {
 
   $ret = $client->call_method('echo', {a=>[1,2,3]});
   is(to_sexp($ret->recv), to_sexp([['a','1','2','3']]));
+
+  $ret = $client->call_method('echo', "abcd\nefgh\nOK");
+  is($ret->recv, "abcd\nefgh\nOK");
+
 };
 
 kill 1, $pid;
