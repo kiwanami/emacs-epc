@@ -5,8 +5,7 @@ use RPC::EPC::Service;
 
 # start server
 
-$pid = open2(*PROC_OUT, undef, 'perl -e \'use RPC::EPC::Service; $s=RPC::EPC::Service->new(8888,{}); $s->{wait}->send; $s->start; sleep 1;\'');
-
+$pid = open2(*PROC_OUT, undef, "perl ./t/_process.pl");
 $val = <PROC_OUT>;
 
 is("8888\n", $val);
