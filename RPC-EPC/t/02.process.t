@@ -1,4 +1,4 @@
-use Test::More tests => 2;
+use Test::More tests => 1;
 
 use IPC::Open2;
 use RPC::EPC::Service;
@@ -14,13 +14,3 @@ close PROC_OUT;
 kill 1, $pid;
 sleep 0.5;
 
-# client start
-
-$client = RPC::EPC::Service->new(8888,{});
-eval {
-  $client->client_start;
-  fail("It should fail.");
-};
-if ($@) {
-  is($@->[0], "Could not connect server.");
-}

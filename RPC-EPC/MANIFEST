@@ -12,6 +12,8 @@ t/03.echo.t
 t/04.add.t
 t/05.errors.t
 t/06.query.t
+t/07.encode.t
+t/_process.pl
 t/_add.pl
 t/_echo.pl
 t/_errors.pl
