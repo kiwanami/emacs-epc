@@ -165,7 +165,7 @@ return epc:connection object."
                   (setq ok t))
               ('error (epc:log "MsgError: %S / <= %S" err event)))
           (unless ok
-            (epc:run-when-idle 'epc:process-available-input process)))))))
+            (epc:run-when-idle 'epc:process-available-input connection process)))))))
 
 (defun epc:net-have-input-p ()
   "Return true if a complete message is available."
