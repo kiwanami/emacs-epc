@@ -45,7 +45,7 @@
    (lambda (mngr)
      (epc:define-method mngr 'echo (lambda (x) x)))
    (deferred:$
-     (epc:call-deferred client-mngr 'echo "echo test")
+     (epc:call-deferred client-mngr 'echo '("echo test"))
      (deferred:nextc it
        (lambda (x) 
          (if (equal "echo test" x) t
@@ -57,7 +57,7 @@
    (lambda (mngr)
      (epc:define-method mngr 'echo (lambda (x) x)))
    (deferred:$
-     (epc:call-deferred client-mngr 'echo '(1 2 "echo test"))
+     (epc:call-deferred client-mngr 'echo '((1 2 "echo test")))
      (deferred:nextc it
        (lambda (x) 
          (if (equal '(1 2 "echo test") x) t
@@ -67,7 +67,7 @@
 (defun epc:test-add ()
   (epc:with-self-server-client
    (lambda (mngr)
-     (epc:define-method mngr 'add (lambda (xs) (apply '+ xs))))
+     (epc:define-method mngr 'add '+))
    (deferred:$
      (epc:call-deferred client-mngr 'add '(1 2 3))
      (deferred:nextc it
@@ -83,7 +83,7 @@
       mngr 'deferred 
       (lambda (x) (deferred:next (lambda () "OK")))))
    (deferred:$
-     (epc:call-deferred client-mngr 'deferred "OK?")
+     (epc:call-deferred client-mngr 'deferred '("OK?"))
      (deferred:nextc it
        (lambda (x) 
          (if (equal "OK" x) t
@@ -115,7 +115,7 @@
         (lambda (x) (cond ((equal x str) str)
                           (t (error "Different content!"))))))
      (deferred:$
-       (epc:call-deferred client-mngr 'echo str)
+       (epc:call-deferred client-mngr 'echo (list str))
        (deferred:nextc it
          (lambda (x) 
            (if (equal x str) t
@@ -130,16 +130,16 @@
      (lexical-let ((mngr mngr))
        (epc:define-method 
         mngr 'ping (lambda (x) 
-                     (epc:call-deferred mngr 'pong (1+ x))))))
+                     (epc:call-deferred mngr 'pong (list (1+ x)))))))
    (epc:define-method 
     client-mngr 'pong
     (lambda (x) 
       (cond
        ((< 3 x) x)
        (t (epc:call-deferred 
-           client-mngr 'ping (1+ x))))))
+           client-mngr 'ping (list (1+ x)))))))
    (deferred:$
-     (epc:call-deferred client-mngr 'ping 1)
+     (epc:call-deferred client-mngr 'ping (list 1))
      (deferred:nextc it
        (lambda (x) 
          (if (equal 4 x) t
@@ -153,7 +153,7 @@
    (lambda (mngr)
      (epc:define-method mngr 'error-calc (lambda (x) (/ 1 0))))
    (deferred:$
-     (epc:call-deferred client-mngr 'error-calc 0)
+     (epc:call-deferred client-mngr 'error-calc (list 0))
      (deferred:nextc it (lambda (x) nil))
      (deferred:error it
        (lambda (x) 
@@ -199,7 +199,7 @@
     (epc:with-self-server-client
      (lambda (mngr) (epc:define-method mngr 'echo (lambda (x) x)))
      (deferred:$
-       (epc:call-deferred client-mngr 'echo 0)
+       (epc:call-deferred client-mngr 'echo (list 0))
        (deferred:nextc it
          (deferred:lambda (x)
            (cond 
