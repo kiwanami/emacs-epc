@@ -440,7 +440,7 @@ HOOK-FUNCTION is a function with no argument."
        (t
         (condition-case err
             (let* ((f (epc:method-task method))
-                   (ret (funcall f args)))
+                   (ret (apply f args)))
               (cond
                ((deferred-p ret)
                 (deferred:nextc ret
