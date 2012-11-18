@@ -256,7 +256,14 @@ This variable is for debug purpose.")
 
 
 (defun epc:start-epc (server-prog server-args)
-  "Start the epc server program and return an epc:manager object."
+  "Start the epc server program and return an epc:manager object.
+
+Start server program SERVER-PROG with command line arguments
+SERVER-ARGS.  The server program must print out the port it is
+using at the first line of its stdout.  If the server prints out
+non-numeric value in the first line or does not print out the
+port number in three seconds, it is regarded as start-up
+failure."
   (let ((mngr (epc:start-server server-prog server-args)))
     (epc:init-epc-layer mngr)
     mngr))
