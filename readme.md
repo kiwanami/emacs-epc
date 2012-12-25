@@ -87,7 +87,7 @@ Here is the equivalent server code in emacs lisp.
   (epcs:server-stop server-process))
 ```
 
-The following 
+The elisp server code should be started with some arguments (batch starting and indicating load pathes) like the following code:
 
 ```lisp
 (setq epc (epc:start-epc "emacs" '("-L" ".." "-L" "~/.emacs.d/elisp" "-batch" "-l" "deferred" "-l" "concurrent" "-l" "epc" "-l" "epcs" "-l" "echo-server.el")))
