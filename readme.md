@@ -12,8 +12,8 @@ Current implementations for the EPC are followings:
 - python-epc : Python implementation
   - http://python-epc.readthedocs.org/en/latest/
 
-The current status is beta. This library needs more applications and
-should be confirmed the API stability and implementation robustness.
+The current status is beta. This library needs more applications to
+confirm stability of the API and robustness of the implementation.
 
 ## Applications
 
