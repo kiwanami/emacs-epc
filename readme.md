@@ -15,6 +15,15 @@ Current implementations for the EPC are followings:
 The current status is beta. This library needs more applications and
 should be confirmed the API stability and implementation robustness.
 
+## Applications
+
+Projects using EPC:
+
+- [Emacs DBI](https://github.com/kiwanami/emacs-edbi):
+  Database GUI and API for Emacs
+- [Emacs Jedi](https://github.com/tkf/emacs-jedi):
+  Python auto-completion for Emacs
+
 ## Sample Code
 
 Here is a client code.
