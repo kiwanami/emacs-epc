@@ -292,7 +292,9 @@ failure."
           (setq port (string-to-number port-str)
                 cont nil))
          ((< 0 (length port-str))
-          (error "Server may raise an error : %s" port-str))
+          (error "Server may raise an error. \
+Use \"M-x epc:pop-to-last-server-process-buffer RET\" \
+to see full traceback:\n%s" port-str))
          ((not (eq 'run (process-status process)))
           (setq cont nil))
          (t
