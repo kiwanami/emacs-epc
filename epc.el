@@ -564,6 +564,14 @@ If an exception is occurred, this function throws the error."
 If an exception is occurred, this function throws the error."
   (epc:sync mngr (epc:call-deferred mngr method-name args)))
 
+(defun epc:live-p (mngr)
+  "Return non-nil when MNGR is an EPC manager object with a live
+connection."
+  (let ((proc (ignore-errors
+                (epc:connection-process (epc:manager-connection mngr)))))
+    (and (processp proc)
+         ;; Same as `process-live-p' in Emacs >= 24:
+         (memq (process-status proc) '(run open listen connect stop)))))
 
 
 ;;==================================================
