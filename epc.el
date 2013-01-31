@@ -111,6 +111,7 @@ return epc:connection object."
     (set-process-sentinel connection-process
                           (lambda (p e) 
                             (epc:process-sentinel connection p e)))
+    (set-process-query-on-exit-flag connection-process nil)
     connection))
 
 (defun epc:connection-reset (connection)
@@ -301,6 +302,7 @@ to see full traceback:\n%s" port-str))
           (incf cont)
           (when (< 30 cont) ; timeout 3 seconds
             (error "Timeout server response."))))))
+    (set-process-query-on-exit-flag process nil)
     (make-epc:manager :server-process process
                       :commands (cons server-prog server-args)
                       :title (mapconcat 'identity (cons server-prog server-args) " ")
