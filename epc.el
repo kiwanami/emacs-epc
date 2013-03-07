@@ -254,6 +254,8 @@ This is more compatible with the CL reader."
 (defstruct epc:manager
   "Root object that holds all information related to an EPC activity.
 
+`epc:start-epc' returns this object.
+
 title          : instance name for displaying on the `epc:controller' UI
 server-process : process object for the peer
 commands       : a list of (prog . args)
@@ -271,6 +273,9 @@ exit-hook      : functions for after shutdown EPC connection"
 
 (epc:document-function 'epc:manager-server-process
   "[internal] process object for the peer
+
+This is *not* network process but the external program started by
+`epc:start-epc'.  For network process, see `epc:connection-process'.
 
 \(fn EPC:MANAGER)")
 
@@ -301,6 +306,8 @@ exit-hook      : functions for after shutdown EPC connection"
 
 (epc:document-function 'epc:manager-exit-hooks
   "[internal] functions for after shutdown EPC connection
+
+Use `epc:manager-add-exit-hook' to add hook.
 
 \(fn EPC:MANAGER)")
 
