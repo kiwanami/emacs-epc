@@ -267,12 +267,15 @@ exit-hook      : functions for after shutdown EPC connection"
   title server-process commands port connection methods sessions exit-hooks)
 
 (epc:document-function 'epc:manager-title
-  "[internal] instance name for displaying on the `epc:controller' UI
+  "Instance name (string) for displaying on the `epc:controller' UI
+
+You can modify this slot using `setf' to change the title column
+in the `epc:controller' table UI.
 
 \(fn EPC:MANAGER)")
 
 (epc:document-function 'epc:manager-server-process
-  "[internal] process object for the peer
+  "Process object for the peer.
 
 This is *not* network process but the external program started by
 `epc:start-epc'.  For network process, see `epc:connection-process'.
@@ -285,7 +288,7 @@ This is *not* network process but the external program started by
 \(fn EPC:MANAGER)")
 
 (epc:document-function 'epc:manager-port
-  "[internal] port number
+  "Port number (integer).
 
 \(fn EPC:MANAGER)")
 
@@ -305,7 +308,7 @@ This is *not* network process but the external program started by
 \(fn EPC:MANAGER)")
 
 (epc:document-function 'epc:manager-exit-hooks
-  "[internal] functions for after shutdown EPC connection
+  "Hooks called after shutdown EPC connection.
 
 Use `epc:manager-add-exit-hook' to add hook.
 
