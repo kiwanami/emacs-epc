@@ -1,6 +1,6 @@
 ;;; epcs.el --- EPC Server
 
-;; Copyright (C) 2011  Masashi Sakurai
+;; Copyright (C) 2011,2012,2013  Masashi Sakurai
 
 ;; Author: Masashi Sakurai <m.sakurai at kiwanami.net>
 ;; Keywords: lisp
@@ -153,7 +153,7 @@ This variable is used for the management purpose.")
 
 ;; Management GUI
 
-
+;; todo...
 
 (provide 'epcs)
 ;;; epcs.el ends here
