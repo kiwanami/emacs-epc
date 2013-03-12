@@ -131,9 +131,11 @@ This section describes the overview of the EPC and how to use API.
 
 ### Object Serialization
 
-All values which are transferred as arguments and a return value of the remote procedure calling, are encoded into the S-expression text format. 
+All values which are transferred as arguments and return values between processes, are encoded into the S-expression text format. 
 
-Only primitive types can be transferred. The EPC stack can translate following types:
+Simple list structure and some primitive types can be transferred. Complicated objects, such as buffer objects, can not be serialized.
+
+The EPC stack can translate following types:
 
 - nil
 - symbol
@@ -143,7 +145,7 @@ Only primitive types can be transferred. The EPC stack can translate following t
 - alist
 - complex object of list and alist.
 
-The function `prin1` is employed for the serialization from objects to string.
+The elisp function `prin1` is employed for the serialization from objects to string.
 
 The peer EPC stack decodes the S-expression text and reconstructs appropriate objects in the particular language environment.
 
@@ -158,14 +160,14 @@ An instance of the struct `epc:manager` is created by calling the initialization
 * epc:start-epc (server-prog server-args)
   * Start the epc server program, establish the connection and return an `epc:manager` object.
   * Argument
-    * server-prog: a path string for the server program
-    * server-args: a list of command line arguments
+     * server-prog: a path string for the server program
+     * server-args: a list of command line arguments
   * Return
-    * This function blocks the evaluation and returns an `epc:manager` object.
+     * This function blocks the evaluation and returns an `epc:manager` object.
   * Error
-    * If the server prints out non-numeric value in the first line or
-      does not print out the port number in three seconds, it is
-      regarded as start-up failure.
+     * If the server prints out non-numeric value in the first line or
+       does not print out the port number in three seconds, it is
+       regarded as start-up failure.
 
 The established EPC session is registered to the global variable for the connection management interface. (See the Management Interface section.)
 
@@ -175,20 +177,20 @@ The established EPC session is registered to the global variable for the connect
   * Disconnect the connection and kill the server process.
   * If the `epc:manager` object has exit hooks, this function executes those clean-up hooks.
   * Argument
-    * an `epc:manager` object
+     * an `epc:manager` object
 
 ### Define Remote Method (epc:define-method)
 
 * epc:define-method (mngr method-name task &optional arg-specs docstring)
   * Define a remote method
   * Argument
-    * mngr: `epc:manager` object
-    * method-name: the method name
-    * task: function symbol or lambda
-    * arg-specs: argument signature for the remote method [optional]
-    * docstring: short description for the remote method [optional]
+     * mngr: `epc:manager` object
+     * method-name: the method name
+     * task: function symbol or lambda
+     * arg-specs: argument signature for the remote method [optional]
+     * docstring: short description for the remote method [optional]
   * Return
-    * an `epc:method` object
+     * an `epc:method` object
 
 The documents are referred by the peer process for users to inspect the methods.
 
@@ -197,20 +199,20 @@ The documents are referred by the peer process for users to inspect the methods.
 * epc:call-deferred (mngr method-name args)
   * Call the remote method asynchronously.
   * Argument
-    * mngr: `epc:manager` object
-    * method-name: the method name to call
-    * args: a list of the arguments
+     * mngr: `epc:manager` object
+     * method-name: the method name to call
+     * args: a list of the arguments
   * Return
-    * Deferred object
-    * See the next section for the error handling
+     * Deferred object
+     * See the next section for the error handling
 * epc:call-sync (mngr method-name args)
   * Call the remote method synchronously.
   * Argument
-    * mngr: `epc:manager` object
-    * method-name: the method name to call
-    * args: a list of the arguments
+     * mngr: `epc:manager` object
+     * method-name: the method name to call
+     * args: a list of the arguments
   * Return
-    * a result from the remote method
+     * a result from the remote method
 
 ### Error Handling
 
@@ -259,10 +261,10 @@ Following functions require the 'epcs' package.
 * epcs:server-start (connect-function &optional port)
   * Start EPC manager stack and initialize the manager with connect-function.
   * Argument
-    * connect-function: a function symbol or lambda with one argument `mngr`, in which function the manager should define some remote methods.
-    * port: TCP port number. (default: determined by the OS)
+     * connect-function: a function symbol or lambda with one argument `mngr`, in which function the manager should define some remote methods.
+     * port: TCP port number. (default: determined by the OS)
   * Return
-    * process object
+     * process object
 
 Here is a sample code for the EPC server:
 
@@ -285,7 +287,7 @@ Here is a sample code for the EPC server:
 * epcs:server-stop (process)
   * Stop EPC manager stack.
   * Argument
-    * process: process object
+     * process: process object
 
 ### Debug
 
