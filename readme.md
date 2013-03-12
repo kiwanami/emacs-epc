@@ -123,23 +123,203 @@ Place those programs and this one (epc.el) in your load path and add following c
 
 # API Document
 
-TODO...
-(The perl document may be helpful. http://search.cpan.org/~kiwanami/RPC-EPC-Service-v0.0.7/lib/RPC/EPC/Service.pm)
+This section describes the overview of the EPC and how to use API.
 
-## High Level API
+### API Overview
 
-## Low Level API
+![API Overview](img/Overview.png)
+
+### Object Serialization
+
+All values which are transferred as arguments and a return value of the remote procedure calling, are encoded into the S-expression text format. 
+
+Only primitive types can be transferred. The EPC stack can translate following types:
+
+- nil
+- symbol
+- number
+- string
+- list
+- alist
+- complex object of list and alist.
+
+The function `prin1` is employed for the serialization from objects to string.
+
+The peer EPC stack decodes the S-expression text and reconstructs appropriate objects in the particular language environment.
+
+### EPC Manager Object (epc:manager)
+
+The struct `epc:manager` defines all information for an EPC activity, such as the connection status, remote methods and sessions. Many API functions needs the instance object as an argument. One, however, doesn't have to learn the internal slots and detailed implementations.
+
+An instance of the struct `epc:manager` is created by calling the initialization function `epc:start-epc`. One can stop the EPC connection with calling the termination function `epc:stop-epc`.
+
+### Start EPC (epc:start-epc)
+
+* epc:start-epc (server-prog server-args)
+  * Start the epc server program, establish the connection and return an `epc:manager` object.
+  * Argument
+    * server-prog: a path string for the server program
+    * server-args: a list of command line arguments
+  * Return
+    * This function blocks the evaluation and returns an `epc:manager` object.
+  * Error
+    * If the server prints out non-numeric value in the first line or
+      does not print out the port number in three seconds, it is
+      regarded as start-up failure.
+
+The established EPC session is registered to the global variable for the connection management interface. (See the Management Interface section.)
+
+### Stop EPC (epc:stop-epc)
+
+* epc:stop-epc (mngr)
+  * Disconnect the connection and kill the server process.
+  * If the `epc:manager` object has exit hooks, this function executes those clean-up hooks.
+  * Argument
+    * an `epc:manager` object
+
+### Define Remote Method (epc:define-method)
+
+* epc:define-method (mngr method-name task &optional arg-specs docstring)
+  * Define a remote method
+  * Argument
+    * mngr: `epc:manager` object
+    * method-name: the method name
+    * task: function symbol or lambda
+    * arg-specs: argument signature for the remote method [optional]
+    * docstring: short description for the remote method [optional]
+  * Return
+    * an `epc:method` object
+
+The documents are referred by the peer process for users to inspect the methods.
+
+### Call Remote Method (epc:call-deferred, epc:call-sync)
+
+* epc:call-deferred (mngr method-name args)
+  * Call the remote method asynchronously.
+  * Argument
+    * mngr: `epc:manager` object
+    * method-name: the method name to call
+    * args: a list of the arguments
+  * Return
+    * Deferred object
+    * See the next section for the error handling
+* epc:call-sync (mngr method-name args)
+  * Call the remote method synchronously.
+  * Argument
+    * mngr: `epc:manager` object
+    * method-name: the method name to call
+    * args: a list of the arguments
+  * Return
+    * a result from the remote method
+
+### Error Handling
+
+The remote method calling may raise the error. The error has two types, the peer's program (`application-error`) and the EPC stack (`epc-error`).
+
+The `application-error` is a normal error which is caused by peer's program, such as 'division by zero', 'file not found' and so on. The programmers are responsible to this type errors, recovering error handling or just fixing bugs.
+
+The `epc-error` is a communication error which is caused by EPC stack, such as 'connection closed', 'method not found', 'serialization error' and so on. This type errors are caused by environment problems, bugs of peer's program, our side one or the EPC stack.
+
+Here is a sample robust code:
+
+```lisp
+(deferred:$
+    (epc:call-deferred mngr "a-method" '(1 2))
+    (deferred:next it
+        (lambda (x)
+            ;; Normal return
+            ;; x: result value
+            ))
+    (deferred:error it
+        (lambda (err)
+         (cond
+          ((stringp err)
+            ;; application error
+            ;; err: error message
+           )
+          ((eq 'epc-error (car err))
+            ;; epc error
+            ;; err: (cadr err) -> error information
+           )))))
+```
+
+In the case of synchronous calling, a signal will be thrown immediately.
+
+### Utilities
+
+* epc:live-p (mngr)
+  * If the EPC stack for `mngr` is eastablished, this function returns `t`.
+* epc:query-methods-deferred (mngr)
+  * Return a list of `epc:method` objects for the peer process.
+
+### Define Server
+
+Following functions require the 'epcs' package.
+
+* epcs:server-start (connect-function &optional port)
+  * Start EPC manager stack and initialize the manager with connect-function.
+  * Argument
+    * connect-function: a function symbol or lambda with one argument `mngr`, in which function the manager should define some remote methods.
+    * port: TCP port number. (default: determined by the OS)
+  * Return
+    * process object
+
+Here is a sample code for the EPC server:
+
+```lisp
+(require 'epcs)
+
+(let ((connect-function
+       (lambda (mngr) 
+         (epc:define-method mngr 'echo (lambda (x) x) "args" "just echo back arguments.")
+         (epc:define-method mngr 'add '+ "args" "add argument numbers.")
+         )) server-process)
+
+  (setq server-process (epcs:server-start connect-function))
+
+  ;; do something or wait for clients
+
+  (epcs:server-stop server-process))
+```
+
+* epcs:server-stop (process)
+  * Stop EPC manager stack.
+  * Argument
+    * process: process object
+
+### Debug
+
+Because the EPC stack is designed to work asynchronously, sometimes one can not use the debugger for the own programs. Then, logging is useful to analyze the troubles.
+
+The EPC has some debug functions for analyzing low level communication.
+
+* epc:debug-out
+  * If this variable is non-nil, the EPC stack records events and communications into the debug buffer.
+* epc:debug-buffer
+  * debug buffer name (default: '*epc log*')
+* epc:log (&rest args)
+  * logging debug messages
 
 ## Management Interface
 
+TODO...
+
 # Implementation
+
+This section describes the EPC architecture and the wire-protocol so as to implement the peer stacks.
 
 ## Protocol Details
 
+TODO...
+
+## Other Stacks
+
+- perl EPC document  http://search.cpan.org/~kiwanami/RPC-EPC-Service-v0.0.7/lib/RPC/EPC/Service.pm
+- python EPC document  http://python-epc.readthedocs.org/en/latest/
 
 # License
 
 GPL v3
 
 ----
-(C) 2012 SAKURAI Masashi. m.sakurai at kiwanami.net
+(C) 2012, 2013 SAKURAI Masashi. m.sakurai at kiwanami.net
