@@ -316,9 +316,9 @@ This table shows following information:
 
 | Column | Note |
 |--------|------|
-| <Process> | Process name |
-| <Proc> | Process status (`process-status` for the process) |
-| <Conn> | Connection status (`process-status` for the TCP connection) |
+| Process | Process name |
+| Proc | Process status (`process-status` for the process) |
+| Conn | Connection status (`process-status` for the TCP connection) |
 | Title | Connection title which is defined by the EPC user program. |
 | Command | Process command and arguments. |
 | Port | TCP port which is opened by the remote process. |
