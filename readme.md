@@ -154,7 +154,7 @@ The elisp function `prin1` is employed for the serialization from objects to str
 
 The peer EPC stack decodes the S-expression text and reconstructs appropriate objects in the particular language environment.
 
-One may want to translate transparently an `alist` as a collection object of key-value pairs, so called 'Hash'. However, because we can not distinguish between `alist` and nested list, it is responsible for the programmer to exchange the `alist` objects and the hash objects.
+One may want to translate an `alist` as a collection object of key-value pairs transparently, so called 'Hash'. However, because we can not distinguish between alist and nested list, it is responsible for the programmer to exchange the alist objects and the hash objects.
 
 ### EPC Manager Object (epc:manager)
 
@@ -427,6 +427,9 @@ The response message is returned by the `return` message.
 ## EPC Internal
 
 The EPC is developed on `deferred.el` and `concurrent.el`. The library `deferred.el` provides primitive an asynchronous framework and `concurrent.el` does concurrent programing components.
+
+- [deferred.el document](https://github.com/kiwanami/emacs-deferred/blob/master/README.markdown)
+- [concurrent.el document](https://github.com/kiwanami/emacs-deferred/blob/master/README-concurrent.markdown)
 
 The EPC user should learn asynchronous programing on `deferred.el`. The components of `concurrent.el` are just internally used at `epc.el`.
 
