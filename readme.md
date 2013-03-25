@@ -1,4 +1,4 @@
-# Emacs RPC
+# EPC : The Emacs RPC
 
 This program is an asynchronous RPC stack for Emacs.  Using this
 RPC stack, the Emacs can communicate with the peer process.
@@ -127,13 +127,19 @@ This section describes the overview of the EPC and how to use API.
 
 ### API Overview
 
+The EPC uses a peer-to-peer-architecture. After the connection is established, both peers can define remote methods and call the methods at the other side.
+
+Let we define the words *server* and *client*. *Server* is a process which opens a TCP port and waiting for the connection. *Client* is a process which connects to the *server*. In most cases, a *client* process starts a *server* process. Then, the *server* process provides some services to the *client* process.
+
+This diagram shows the API usage and the relation of processes.
+
 ![API Overview](img/Overview.png)
 
 ### Object Serialization
 
 All values which are transferred as arguments and return values between processes, are encoded into the S-expression text format. 
 
-Simple list structure and some primitive types can be transferred. Complicated objects, such as buffer objects, can not be serialized.
+Simple list structure and some primitive types can be transferred. Complicated objects, such as buffer objects, can not be serialized. The EPC stack doesn't provide transparent remote object service, that is ORB.
 
 The EPC stack can translate following types:
 
@@ -142,12 +148,13 @@ The EPC stack can translate following types:
 - number
 - string
 - list
-- alist
 - complex object of list and alist.
 
 The elisp function `prin1` is employed for the serialization from objects to string.
 
 The peer EPC stack decodes the S-expression text and reconstructs appropriate objects in the particular language environment.
+
+One may want to translate transparently an `alist` as a collection object of key-value pairs, so called 'Hash'. However, because we can not distinguish between `alist` and nested list, it is responsible for the programmer to exchange the `alist` objects and the hash objects.
 
 ### EPC Manager Object (epc:manager)
 
@@ -417,6 +424,18 @@ This message represents the method query.
 
 The response message is returned by the `return` message.
 
+## EPC Internal
+
+The EPC is developed on `deferred.el` and `concurrent.el`. The library `deferred.el` provides primitive an asynchronous framework and `concurrent.el` does concurrent programing components.
+
+The EPC user should learn asynchronous programing on `deferred.el`. The components of `concurrent.el` are just internally used at `epc.el`.
+
+![EPC Stack](img/epc-stack.png)
+
+Here is a diagram for the `epc.el` architecture, which diagram may be helpful for code reading of `epc.el`.
+
+![Internal Architecture](img/epc-internal.png)
+
 ## Other Stacks
 
 - perl EPC document  http://search.cpan.org/~kiwanami/RPC-EPC-Service-v0.0.7/lib/RPC/EPC/Service.pm
@@ -424,7 +443,11 @@ The response message is returned by the `return` message.
 
 # License
 
-GPL v3
+EPC is licensed under GPL v3.
+
+# Acknowledgment
+
+I received generous support from @tkf. Thanks!
 
 ----
 (C) 2012, 2013 SAKURAI Masashi. m.sakurai at kiwanami.net
