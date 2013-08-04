@@ -1,11 +1,11 @@
 ;;; epc.el --- A RPC stack for the Emacs Lisp
 
-;; Copyright (C) 2011, 2012  Masashi Sakurai
+;; Copyright (C) 2011, 2012, 2013  Masashi Sakurai
 
 ;; Author: SAKURAI Masashi <m.sakurai at kiwanami.net>
 ;; Version: 0.1.1
 ;; Keywords: lisp, rpc
-;; Package-Requires: ((concurrent "0.3.1") (ctable "0.1.1"))
+;; Package-Requires: ((concurrent "0.3.1") (ctable "0.1.2"))
 ;; URL: https://github.com/kiwanami/emacs-epc
 
 ;; This program is free software; you can redistribute it and/or modify
