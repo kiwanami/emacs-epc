@@ -137,7 +137,16 @@ This diagram shows the API usage and the relation of processes.
 
 ### Object Serialization
 
-All values which are transferred as arguments and return values between processes, are encoded into the S-expression text format. 
+All values which are transferred as arguments and return values between processes, are encoded into the S-expression text format.
+
+The EPC uses S-expression as an object serialization format, not JSON.
+In these days, JSON is widely employed and many environments has some JSON serializers.
+However, JSON is not the best format for IPC from the point of view of serialization speed.
+The current Emacs implementation (23.x and 24.x) can read/write JSON format with json.el about 5-10 times slower than S-expression one.
+Since the Emacs interpreter is often slower than other interpreters or VMs, one should choose a format so that Emacs can deal faster.
+In addition, S-expression has good expression power as well as JSON does.
+So, the EPC stack uses S-expression, though we need more work for writing S-expression serializers on the peer side.
+(In the future, we may use JSON when Emacs can read/write JSON in native library...)
 
 Simple list structure and some primitive types can be transferred. Complicated objects, such as buffer objects, can not be serialized. The EPC stack doesn't provide transparent remote object service, that is ORB.
 
