@@ -28,6 +28,14 @@
 (require 'cl)
 (require 'pp)
 
+
+(defvar epc:source-dir (if load-file-name
+                           (file-name-directory load-file-name)
+                         default-directory))
+
+(defvar epc:demo-dir (expand-file-name "demo" epc:source-dir))
+
+
 (defmacro epc:with-self-server-client (connect-function &rest body)
   `(lexical-let*
        ((server-process (epcs:server-start ,connect-function t))
@@ -240,7 +248,8 @@
                        path-separator))
     (epc:start-epc-deferred
      emacs
-     '("-Q" "--batch" "-l" "demo/echo-server.el"))))
+     `("-Q" "--batch"
+       "-l" ,(expand-file-name "echo-server.el" epc:demo-dir)))))
 
 (defun epc:test-start-epc-deferred-success ()
   (deferred:nextc (epc:test-start-echo-server)
