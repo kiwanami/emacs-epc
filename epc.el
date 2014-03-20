@@ -374,6 +374,11 @@ failure."
     (epc:init-epc-layer mngr)
     mngr))
 
+(defun epc:start-epc-deferred (server-prog server-args)
+  "Deferred version of `epc:start-epc'"
+  (deferred:nextc (epc:start-server-deferred server-prog server-args)
+    #'epc:init-epc-layer))
+
 (defun epc:server-process-name (uid)
   (format "epc:server:%s" uid))
 
@@ -413,6 +418,50 @@ to see full traceback:\n%s" port-str))
                       :title (mapconcat 'identity (cons server-prog server-args) " ")
                       :port port
                       :connection (epc:connect "localhost" port))))
+
+(defun epc:start-server-deferred (server-prog server-args)
+  "[internal] Same as `epc:start-server' but start the server asynchronously."
+  (lexical-let*
+      ((uid (epc:uid))
+       (process-name (epc:server-process-name uid))
+       (process-buffer (get-buffer-create (epc:server-buffer-name uid)))
+       (process (apply 'start-process
+                       process-name process-buffer
+                       server-prog server-args))
+       (mngr (make-epc:manager
+              :server-process process
+              :commands (cons server-prog server-args)
+              :title (mapconcat 'identity (cons server-prog server-args) " ")))
+       (cont 1) port)
+    (set-process-query-on-exit-flag process nil)
+    (deferred:$
+      (deferred:next
+        (deferred:lambda (_)
+          (accept-process-output process 0 nil t)
+          (let ((port-str (with-current-buffer process-buffer
+                            (buffer-string))))
+            (cond
+             ((string-match "^[0-9]+$" port-str)
+              (setq port (string-to-number port-str)
+                    cont nil))
+             ((< 0 (length port-str))
+              (error "Server may raise an error. \
+Use \"M-x epc:pop-to-last-server-process-buffer RET\" \
+to see full traceback:\n%s" port-str))
+             ((not (eq 'run (process-status process)))
+              (setq cont nil))
+             (t
+              (incf cont)
+              (when (< epc:accept-process-timeout-count cont)
+                ;; timeout 15 seconds
+                (error "Timeout server response."))
+              (deferred:nextc (deferred:wait epc:accept-process-timeout)
+                self))))))
+      (deferred:nextc it
+        (lambda (_)
+          (setf (epc:manager-port mngr) port)
+          (setf (epc:manager-connection mngr) (epc:connect "localhost" port))
+          mngr)))))
 
 (defun epc:stop-epc (mngr)
   "Disconnect the connection for the server."
