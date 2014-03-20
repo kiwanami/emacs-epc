@@ -24,6 +24,7 @@
 
 ;;; Code:
 
+(eval-when-compile (require 'cl))
 (require 'epc)
 
 (defvar epcs:client-processes nil
