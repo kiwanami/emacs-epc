@@ -394,7 +394,7 @@ failure."
       (let ((port-str (with-current-buffer process-buffer
                           (buffer-string))))
         (cond
-         ((string-match "^[0-9]+$" port-str)
+         ((string-match "^[ \n\r]*[0-9]+[ \n\r]*$" port-str)
           (setq port (string-to-number port-str)
                 cont nil))
          ((< 0 (length port-str))
