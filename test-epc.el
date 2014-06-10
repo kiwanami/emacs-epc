@@ -165,8 +165,10 @@
      (deferred:nextc it (lambda (x) nil))
      (deferred:error it
        (lambda (x) 
-         (if (string-match "arith-error" x) t
-           (format "Return : [%S]" x))))
+         (destructuring-bind (sym msg) x
+         (if (and (eq sym 'error) 
+                  (string-match "arith-error" msg)) t
+           (format "Return : [%S]" x)))))
      (deferred:watch it dfinish))))
 
 ;; (cc:debug (epc:test-app-error) "app-error %S" x)
@@ -179,8 +181,10 @@
      (deferred:nextc it (lambda (x) nil))
      (deferred:error it
        (lambda (x) 
-         (if (string-match "^EPC-ERROR:" x) t
-           (format "Return : [%S]" x))))
+         (destructuring-bind (sym msg) x
+           (if (and (eq sym 'epc-error)
+                    (string-match "^EPC-ERROR:" msg)) t
+           (format "Return : [%S]" x)))))
      (deferred:watch it dfinish))))
 
 ;; (cc:debug (epc:test-epc-error) "epc-error %S" x)

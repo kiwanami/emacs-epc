@@ -88,6 +88,8 @@
 (defvar epc:accept-process-timeout 150  "Asynchronous timeout time. (msec)")
 (defvar epc:accept-process-timeout-count 100 " Startup function waits (`epc:accept-process-timeout' * `epc:accept-process-timeout-count') msec for the external process getting ready.")
 
+(put 'epc-error 'error-conditions '(error epc-error))
+(put 'epc-error 'error-message "EPC Error")
 
 (defstruct epc:connection
   "Set of information for network connection and event handling.
