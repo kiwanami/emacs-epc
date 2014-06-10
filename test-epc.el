@@ -28,6 +28,14 @@
 (require 'cl)
 (require 'pp)
 
+
+(defvar epc:source-dir (if load-file-name
+                           (file-name-directory load-file-name)
+                         default-directory))
+
+(defvar epc:demo-dir (expand-file-name "demo" epc:source-dir))
+
+
 (defmacro epc:with-self-server-client (connect-function &rest body)
   `(lexical-let*
        ((server-process (epcs:server-start ,connect-function t))
@@ -225,6 +233,36 @@
                      server-count1 server-count2
                      client-count1 client-count2))))))))
 
+(defun epc:test-start-echo-server ()
+  (let ((emacs (concat invocation-directory invocation-name))
+        (process-environment (mapcar #'identity process-environment)))
+    ;; See: (info "(emacs) General Variables")
+    (setenv "EMACSLOADPATH"
+            (mapconcat #'identity
+                       (loop for p in load-path
+                             for e = (expand-file-name p)
+                             ;; `file-directory-p' is required to suppress
+                             ;; Warning: Lisp directory `...' does not exist.
+                             when (file-directory-p e)
+                             collect e)
+                       path-separator))
+    (epc:start-epc-deferred
+     emacs
+     `("-Q" "--batch"
+       "-l" ,(expand-file-name "echo-server.el" epc:demo-dir)))))
+
+(defun epc:test-start-epc-deferred-success ()
+  (deferred:nextc (epc:test-start-echo-server)
+    (lambda (mngr)
+      (epc:stop-epc mngr)
+      t)))
+
+(defun epc:test-start-epc-deferred-fail ()
+  (deferred:$
+    (epc:start-epc-deferred "false" nil)
+    (deferred:nextc it (lambda (_) nil))
+    (deferred:error it (lambda (_) t))))
+
 
 ;;==================================================
 ;; Async Test Framework (based on deferred.el)
@@ -254,6 +292,8 @@
     epc:test-multibytes
     epc:test-epc-server-counts
     epc:test-epc-methods
+    epc:test-start-epc-deferred-success
+    epc:test-start-epc-deferred-fail
     ))
 
 
