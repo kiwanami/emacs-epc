@@ -8,9 +8,12 @@ asynchronous communications, the RPC response is fairly good.
 Current implementations for the EPC are followings:
 - epcs.el : Emacs Lisp implementation
 - RPC::EPC::Service : Perl implementation
-  - One can get this module by CPAN or PPM.
+  - You can get this module by CPAN or PPM.
 - python-epc : Python implementation
   - http://python-epc.readthedocs.org/en/latest/
+- elrpc : Ruby implementation
+  - You can get `elrpc` from rubygems.
+  - https://github.com/kiwanami/ruby-elrpc
 
 The current status is beta. This library needs more applications to
 confirm stability of the API and robustness of the implementation.
@@ -23,6 +26,8 @@ Projects using EPC:
   Database GUI and API for Emacs
 - [Emacs Jedi](https://github.com/tkf/emacs-jedi):
   Python auto-completion for Emacs
+- [Emacs Webkit](http://www.emacswiki.org/emacs/WebKit)
+  Full-featured browser in Emacs
 
 ## Sample Code
 
@@ -106,7 +111,7 @@ The elisp server code should be started with some arguments (batch starting and 
 
 ## Package installation
 
-If you use package.el with Marmalade (http://marmalade-repo.org/), you just select the package 'epc' and install it.
+If you use package.el with Marmalade (http://marmalade-repo.org/), you just select the package `epc` and install it.
 
 ## Manual installation
 
@@ -143,7 +148,7 @@ The EPC uses S-expression as an object serialization format, not JSON.
 In these days, JSON is widely employed and many environments has some JSON serializers.
 However, JSON is not the best format for IPC from the point of view of serialization speed.
 The current Emacs implementation (23.x and 24.x) can read/write JSON format with json.el about 5-10 times slower than S-expression one.
-Since the Emacs interpreter is often slower than other interpreters or VMs, one should choose a format so that Emacs can deal faster.
+Since the Emacs interpreter is often slower than other interpreters or VMs, we should choose a format so that Emacs can deal faster.
 In addition, S-expression has good expression power as well as JSON does.
 So, the EPC stack uses S-expression, though we need more work for writing S-expression serializers on the peer side.
 (In the future, we may use JSON when Emacs can read/write JSON in native library...)
@@ -163,21 +168,21 @@ The elisp function `prin1` is employed for the serialization from objects to str
 
 The peer EPC stack decodes the S-expression text and reconstructs appropriate objects in the particular language environment.
 
-One may want to translate an `alist` as a collection object of key-value pairs transparently, so called 'Hash'. However, because we can not distinguish between alist and nested list, it is responsible for the programmer to exchange the alist objects and the hash objects.
+You may want to translate an `alist` as a collection object of key-value pairs transparently, so called `Hash`. However, because we can not distinguish between alist and nested list, it is responsible for the programmer to exchange the alist objects and the hash objects.
 
 ### EPC Manager Object (epc:manager)
 
-The struct `epc:manager` defines all information for an EPC activity, such as the connection status, remote methods and sessions. Many API functions needs the instance object as an argument. One, however, doesn't have to learn the internal slots and detailed implementations.
+The struct `epc:manager` defines all information for an EPC activity, such as the connection status, remote methods and sessions. Many API functions needs the instance object as an argument. You, however, doesn't have to learn the internal slots and detailed implementations.
 
-An instance of the struct `epc:manager` is created by calling the initialization function `epc:start-epc`. One can stop the EPC connection with calling the termination function `epc:stop-epc`.
+An instance of the struct `epc:manager` is created by calling the initialization function `epc:start-epc`. You can stop the EPC connection with calling the termination function `epc:stop-epc`.
 
 ### Start EPC (epc:start-epc)
 
-* epc:start-epc (server-prog server-args)
+* `epc:start-epc (server-prog server-args)`
   * Start the epc server program, establish the connection and return an `epc:manager` object.
   * Argument
-     * server-prog: a path string for the server program
-     * server-args: a list of command line arguments
+     * `server-prog`: a path string for the server program
+     * `server-args`: a list of command line arguments
   * Return
      * This function blocks the evaluation and returns an `epc:manager` object.
   * Error
@@ -189,7 +194,7 @@ The established EPC session is registered to the global variable for the connect
 
 ### Stop EPC (epc:stop-epc)
 
-* epc:stop-epc (mngr)
+* `epc:stop-epc (mngr)`
   * Disconnect the connection and kill the server process.
   * If the `epc:manager` object has exit hooks, this function executes those clean-up hooks.
   * Argument
@@ -197,14 +202,14 @@ The established EPC session is registered to the global variable for the connect
 
 ### Define Remote Method (epc:define-method)
 
-* epc:define-method (mngr method-name task &optional arg-specs docstring)
+* `epc:define-method (mngr method-name task &optional arg-specs docstring)`
   * Define a remote method
   * Argument
-     * mngr: `epc:manager` object
-     * method-name: the method name
-     * task: function symbol or lambda
-     * arg-specs: argument signature for the remote method [optional]
-     * docstring: short description for the remote method [optional]
+     * `mngr`: `epc:manager` object
+     * `method-name`: the method name
+     * `task`: function symbol or lambda
+     * `arg-specs`: argument signature for the remote method [optional]
+     * `docstring`: short description for the remote method [optional]
   * Return
      * an `epc:method` object
 
@@ -212,21 +217,21 @@ The documents are referred by the peer process for users to inspect the methods.
 
 ### Call Remote Method (epc:call-deferred, epc:call-sync)
 
-* epc:call-deferred (mngr method-name args)
+* `epc:call-deferred (mngr method-name args)`
   * Call the remote method asynchronously.
   * Argument
-     * mngr: `epc:manager` object
-     * method-name: the method name to call
-     * args: a list of the arguments
+     * `mngr`: `epc:manager` object
+     * `method-name`: the method name to call
+     * `args`: a list of the arguments
   * Return
      * Deferred object
      * See the next section for the error handling
-* epc:call-sync (mngr method-name args)
+* `epc:call-sync (mngr method-name args)`
   * Call the remote method synchronously.
   * Argument
-     * mngr: `epc:manager` object
-     * method-name: the method name to call
-     * args: a list of the arguments
+     * `mngr`: `epc:manager` object
+     * `method-name`: the method name to call
+     * `args`: a list of the arguments
   * Return
      * a result from the remote method
 
@@ -265,20 +270,20 @@ In the case of synchronous calling, a signal will be thrown immediately.
 
 ### Utilities
 
-* epc:live-p (mngr)
+* `epc:live-p (mngr)`
   * If the EPC stack for `mngr` is eastablished, this function returns `t`.
-* epc:query-methods-deferred (mngr)
+* `epc:query-methods-deferred (mngr)`
   * Return a list of `epc:method` objects for the peer process.
 
 ### Define Server
 
-Following functions require the 'epcs' package.
+Following functions require the `epcs` package.
 
-* epcs:server-start (connect-function &optional port)
+* `epcs:server-start (connect-function &optional port)`
   * Start EPC manager stack and initialize the manager with connect-function.
   * Argument
-     * connect-function: a function symbol or lambda with one argument `mngr`, in which function the manager should define some remote methods.
-     * port: TCP port number. (default: determined by the OS)
+     * `connect-function`: a function symbol or lambda with one argument `mngr`, in which function the manager should define some remote methods.
+     * `port`: TCP port number. (default: determined by the OS)
   * Return
      * process object
 
@@ -300,22 +305,22 @@ Here is a sample code for the EPC server:
   (epcs:server-stop server-process))
 ```
 
-* epcs:server-stop (process)
+* `epcs:server-stop (process)`
   * Stop EPC manager stack.
   * Argument
-     * process: process object
+     * `process`: process object
 
 ### Debug
 
-Because the EPC stack is designed to work asynchronously, sometimes one can not use the debugger for the own programs. Then, logging is useful to analyze the troubles.
+Because the EPC stack is designed to work asynchronously, sometimes you can not use the debugger for the own programs. Then, logging is useful to analyze the troubles.
 
 The EPC has some debug functions for analyzing low level communication.
 
-* epc:debug-out
+* `epc:debug-out`
   * If this variable is non-nil, the EPC stack records events and communications into the debug buffer.
-* epc:debug-buffer
+* `epc:debug-buffer`
   * debug buffer name (default: '*epc log*')
-* epc:log (&rest args)
+* `epc:log (&rest args)`
   * logging debug messages
 
 ## Management Interface
@@ -324,53 +329,53 @@ The EPC has a management interface for the EPC connections. Users can check the 
 
 ### Current Connections
 
-Executing `M-x epc:controller`, one can display the list of current established connections.
+Executing `M-x epc:controller`, you can display the list of current established connections.
 
 ![Current Connections](img/mm-conns.png)
 
 This table shows following information:
 
-| Column | Note |
-|--------|------|
-| Process | Process name |
-| Proc | Process status (`process-status` for the process) |
-| Conn | Connection status (`process-status` for the TCP connection) |
-| Title | Connection title which is defined by the EPC user program. |
-| Command | Process command and arguments. |
-| Port | TCP port which is opened by the remote process. |
-| Methods | Number of methods which are defined at the Emacs side. |
-| Live sessions | Number of sessions which are waiting for a return value.|
+| Column        | Note                                                        |
+|---------------+-------------------------------------------------------------|
+| Process       | Process name                                                |
+| Proc          | Process status (`process-status` for the process)           |
+| Conn          | Connection status (`process-status` for the TCP connection) |
+| Title         | Connection title which is defined by the EPC user program.  |
+| Command       | Process command and arguments.                              |
+| Port          | TCP port which is opened by the remote process.             |
+| Methods       | Number of methods which are defined at the Emacs side.      |
+| Live sessions | Number of sessions which are waiting for a return value.    |
 
-One can use following key-bind:
+This management buffer provides following key-bind:
 
-| Key | Command | Note |
-|-----|---------|------|
-| g | `epc:controller-update-command` | Refresh the table. |
-| R | `epc:controller-connection-restart-command` | Restart the selected connection. |
-| D,K | `epc:controller-connection-kill-command` | Kill the selected process and connection. |
-| m,RET | `epc:controller-methods-show-command` | Display a method list of the remote process. (See the next sub-section for details.) |
-| B | `epc:controller-connection-buffer-command` | Display the connection buffer. |
+| Key   | Command                                     | Note                                                                                 |
+|-------+---------------------------------------------+--------------------------------------------------------------------------------------|
+| g     | `epc:controller-update-command`             | Refresh the table.                                                                   |
+| R     | `epc:controller-connection-restart-command` | Restart the selected connection.                                                     |
+| D,K   | `epc:controller-connection-kill-command`    | Kill the selected process and connection.                                            |
+| m,RET | `epc:controller-methods-show-command`       | Display a method list of the remote process. (See the next sub-section for details.) |
+| B     | `epc:controller-connection-buffer-command`  | Display the connection buffer.                                                       |
 
 ### Remote Method List
 
-Displaying a method list, one can inspect the methods which are defined by the remote process.
+Displaying a method list, you can inspect the methods which are defined by the remote process.
 
 ![Remote Method List](img/mm-methods.png)
 
 This table shows following information:
 
-| Column | Note |
-|--------|------|
-| Method Name | Method name to call.|
-| Arguments | [optional] Argument names.|
-| Document | [optional] Method spec document.|
+| Column      | Note                             |
+|-------------+----------------------------------|
+| Method Name | Method name to call.             |
+| Arguments   | [optional] Argument names.       |
+| Document    | [optional] Method spec document. |
 
-Here, 'Arguments' and 'Document' may be blank, because those are not essential slots.
+Here, 'Arguments' and 'Document' columns may be blank, because those are not essential slots.
 
-| Key | Command | Note |
-|-----|---------|------|
-| e | `epc:controller-methods-eval-command` | Evaluate the selected remote method with some arguments. |
-| q | `bury-buffer`| Bury this buffer. |
+| Key | Command                               | Note                                                     |
+|-----+---------------------------------------+----------------------------------------------------------|
+| e   | `epc:controller-methods-eval-command` | Evaluate the selected remote method with some arguments. |
+| q   | `bury-buffer`                         | Bury this buffer.                                        |
 
 # Implementation
 
@@ -384,9 +389,15 @@ The EPC protocol is based on the SWANK protocol.
 
 ### Message Envelope
 
+A message consists of 6 bytes content-length and a subsequent payload content.
+The payload content is a S-expression string. The S-expression is a cons cell, car is message type symbol and cdr is message body list.
+
 - PAYLOAD-LENGTH  : 24-bit hex-encoded integer
 - PAYLOAD-CONTENT : S-expression, text, utf-8
   - (MESSAGE-TYPE . MESSAGE-BODY-LIST)
+
+The message type can choice between `call`, `return`, `return-error`, `epc-error` and `methods`.
+The message body varies according to the message type.
 
 - MESSAGE-TYPE : `call` | `return` | `return-error` | `epc-error` | `methods`
 - MESSAGE-BODY-LIST : (Dependent on message types.)
@@ -452,6 +463,7 @@ Here is a diagram for the `epc.el` architecture, which diagram may be helpful fo
 
 - perl EPC document  http://search.cpan.org/~kiwanami/RPC-EPC-Service-v0.0.7/lib/RPC/EPC/Service.pm
 - python EPC document  http://python-epc.readthedocs.org/en/latest/
+- ruby EPC document https://github.com/kiwanami/ruby-elrpc/blob/master/README.md
 
 # License
 
@@ -462,4 +474,4 @@ EPC is licensed under GPL v3.
 I received generous support from @tkf. Thanks!
 
 ----
-(C) 2012, 2013 SAKURAI Masashi. m.sakurai at kiwanami.net
+(C) 2012, 2013, 2014, 2015 SAKURAI Masashi. m.sakurai at kiwanami.net
