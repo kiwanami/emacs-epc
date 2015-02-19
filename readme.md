@@ -336,7 +336,7 @@ Executing `M-x epc:controller`, you can display the list of current established 
 This table shows following information:
 
 | Column        | Note                                                        |
-|---------------+-------------------------------------------------------------|
+|---------------|-------------------------------------------------------------|
 | Process       | Process name                                                |
 | Proc          | Process status (`process-status` for the process)           |
 | Conn          | Connection status (`process-status` for the TCP connection) |
@@ -349,7 +349,7 @@ This table shows following information:
 This management buffer provides following key-bind:
 
 | Key   | Command                                     | Note                                                                                 |
-|-------+---------------------------------------------+--------------------------------------------------------------------------------------|
+|-------|---------------------------------------------|--------------------------------------------------------------------------------------|
 | g     | `epc:controller-update-command`             | Refresh the table.                                                                   |
 | R     | `epc:controller-connection-restart-command` | Restart the selected connection.                                                     |
 | D,K   | `epc:controller-connection-kill-command`    | Kill the selected process and connection.                                            |
@@ -365,7 +365,7 @@ Displaying a method list, you can inspect the methods which are defined by the r
 This table shows following information:
 
 | Column      | Note                             |
-|-------------+----------------------------------|
+|-------------|----------------------------------|
 | Method Name | Method name to call.             |
 | Arguments   | [optional] Argument names.       |
 | Document    | [optional] Method spec document. |
@@ -373,7 +373,7 @@ This table shows following information:
 Here, 'Arguments' and 'Document' columns may be blank, because those are not essential slots.
 
 | Key | Command                               | Note                                                     |
-|-----+---------------------------------------+----------------------------------------------------------|
+|-----|---------------------------------------|----------------------------------------------------------|
 | e   | `epc:controller-methods-eval-command` | Evaluate the selected remote method with some arguments. |
 | q   | `bury-buffer`                         | Bury this buffer.                                        |
 
