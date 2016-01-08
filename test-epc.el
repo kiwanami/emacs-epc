@@ -111,7 +111,7 @@
        (deferred:watch it dfinish)
        (deferred:sync! it)))))
 
-(defun epc:test-multibytes ()
+(ert-deftest epc:test-multibytes ()
   (lexical-let ((str "日本語能力!!ソﾊﾝｶｸ"))
     (epc:with-self-server-client
      (lambda (mngr)
@@ -123,11 +123,9 @@
        (epc:call-deferred client-mngr 'echo (list str))
        (deferred:nextc it
          (lambda (x)
-           (if (equal x str) t
-             (format "Return : [%s]" x))))
-       (deferred:watch it dfinish)))))
-
-;; (cc:debug (epc:test-multibytes) "test-multibytes %S" x)
+           (should (equal x str))))
+       (deferred:watch it dfinish)
+       (deferred:sync! it)))))
 
 (defun epc:test-ping-pong ()
   (epc:with-self-server-client
