@@ -164,7 +164,7 @@
      (deferred:watch it dfinish)
      (deferred:sync! it))))
 
-(defun epc:test-epc-error ()
+(ert-deftest epc:test-epc-error ()
   (epc:with-self-server-client
    (lambda (mngr) ) ; nothing
    (deferred:$
@@ -173,12 +173,10 @@
      (deferred:error it
        (lambda (x)
          (destructuring-bind (sym msg) x
-           (if (and (eq sym 'epc-error)
-                    (string-match "^EPC-ERROR:" msg)) t
-           (format "Return : [%S]" x)))))
-     (deferred:watch it dfinish))))
-
-;; (cc:debug (epc:test-epc-error) "epc-error %S" x)
+           (should (and (eq sym 'epc-error)
+                        (string-match "^EPC-ERROR:" msg))))))
+     (deferred:watch it dfinish)
+     (deferred:sync! it))))
 
 (defun epc:test-epc-methods ()
   (epc:with-self-server-client
