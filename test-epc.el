@@ -127,7 +127,7 @@
        (deferred:watch it dfinish)
        (deferred:sync! it)))))
 
-(defun epc:test-ping-pong ()
+(ert-deftest epc:test-ping-pong ()
   (epc:with-self-server-client
    (lambda (mngr)
      (lexical-let ((mngr mngr))
@@ -145,11 +145,9 @@
      (epc:call-deferred client-mngr 'ping (list 1))
      (deferred:nextc it
        (lambda (x)
-         (if (equal 4 x) t
-           (format "Return : [%s]" x))))
-     (deferred:watch it dfinish))))
-
-;; (cc:debug (epc:test-ping-pong) "test-ping-pong %S" x)
+         (should (equal 4 x))))
+     (deferred:watch it dfinish)
+     (deferred:sync! it))))
 
 (defun epc:test-app-error ()
   (epc:with-self-server-client
