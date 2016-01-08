@@ -249,11 +249,12 @@
         (epc:stop-epc mngr)
         (should t)))))
 
-(defun epc:test-start-epc-deferred-fail ()
+(ert-deftest epc:test-start-epc-deferred-fail ()
   (deferred:$
     (epc:start-epc-deferred "false" nil)
     (deferred:nextc it (lambda (_) nil))
-    (deferred:error it (lambda (_) t))))
+    (deferred:error it (lambda (_) (should t)))
+    (deferred:sync! it)))
 
 
 ;;==================================================
