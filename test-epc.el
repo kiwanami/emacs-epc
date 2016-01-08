@@ -60,7 +60,7 @@
      (deferred:watch it dfinish)
      (deferred:sync! it))))
 
-(defun epc:test-echo-list ()
+(ert-deftest epc:test-echo-list ()
   (epc:with-self-server-client
    (lambda (mngr)
      (epc:define-method mngr 'echo (lambda (x) x)))
@@ -68,9 +68,9 @@
      (epc:call-deferred client-mngr 'echo '((1 2 "echo test")))
      (deferred:nextc it
        (lambda (x)
-         (if (equal '(1 2 "echo test") x) t
-           (format "Return : [%s]" x))))
-     (deferred:watch it dfinish))))
+         (should (equal '(1 2 "echo test") x))))
+     (deferred:watch it dfinish)
+     (deferred:sync! it))))
 
 (defun epc:test-add ()
   (epc:with-self-server-client
