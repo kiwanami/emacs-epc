@@ -40,9 +40,9 @@
   `(lexical-let*
        ((server-process (epcs:server-start ,connect-function t))
         (client-mngr (epc:start-epc-debug
-                      (process-contact 
+                      (process-contact
                        server-process :service)))
-        (dfinish (lambda (x) 
+        (dfinish (lambda (x)
                    (epc:stop-epc client-mngr)
                    (epcs:server-stop server-process))))
      ,@body
@@ -55,7 +55,7 @@
    (deferred:$
      (epc:call-deferred client-mngr 'echo '("echo test"))
      (deferred:nextc it
-       (lambda (x) 
+       (lambda (x)
          (if (equal "echo test" x) t
            (format "Return : [%s]" x))))
      (deferred:watch it dfinish))))
@@ -67,7 +67,7 @@
    (deferred:$
      (epc:call-deferred client-mngr 'echo '((1 2 "echo test")))
      (deferred:nextc it
-       (lambda (x) 
+       (lambda (x)
          (if (equal '(1 2 "echo test") x) t
            (format "Return : [%s]" x))))
      (deferred:watch it dfinish))))
@@ -79,7 +79,7 @@
    (deferred:$
      (epc:call-deferred client-mngr 'add '(1 2 3))
      (deferred:nextc it
-       (lambda (x) 
+       (lambda (x)
          (if (equal 6 x) t
            (format "Return : [%s]" x))))
      (deferred:watch it dfinish))))
@@ -87,13 +87,13 @@
 (defun epc:test-deferred ()
   (epc:with-self-server-client
    (lambda (mngr)
-     (epc:define-method 
-      mngr 'deferred 
+     (epc:define-method
+      mngr 'deferred
       (lambda (x) (deferred:next (lambda () "OK")))))
    (deferred:$
      (epc:call-deferred client-mngr 'deferred '("OK?"))
      (deferred:nextc it
-       (lambda (x) 
+       (lambda (x)
          (if (equal "OK" x) t
            (format "Return : [%s]" x))))
      (deferred:watch it dfinish))))
@@ -107,7 +107,7 @@
      (deferred:$
        (epc:call-deferred client-mngr 'large-echo (make-string len ?x))
        (deferred:nextc it
-         (lambda (x) 
+         (lambda (x)
            (if (= len (length x)) t
              (format "Return : [%s]" (length x)))))
        (deferred:watch it dfinish)))))
@@ -125,7 +125,7 @@
      (deferred:$
        (epc:call-deferred client-mngr 'echo (list str))
        (deferred:nextc it
-         (lambda (x) 
+         (lambda (x)
            (if (equal x str) t
              (format "Return : [%s]" x))))
        (deferred:watch it dfinish)))))
@@ -136,20 +136,20 @@
   (epc:with-self-server-client
    (lambda (mngr)
      (lexical-let ((mngr mngr))
-       (epc:define-method 
-        mngr 'ping (lambda (x) 
+       (epc:define-method
+        mngr 'ping (lambda (x)
                      (epc:call-deferred mngr 'pong (list (1+ x)))))))
-   (epc:define-method 
+   (epc:define-method
     client-mngr 'pong
-    (lambda (x) 
+    (lambda (x)
       (cond
        ((< 3 x) x)
-       (t (epc:call-deferred 
+       (t (epc:call-deferred
            client-mngr 'ping (list (1+ x)))))))
    (deferred:$
      (epc:call-deferred client-mngr 'ping (list 1))
      (deferred:nextc it
-       (lambda (x) 
+       (lambda (x)
          (if (equal 4 x) t
            (format "Return : [%s]" x))))
      (deferred:watch it dfinish))))
@@ -164,9 +164,9 @@
      (epc:call-deferred client-mngr 'error-calc (list 0))
      (deferred:nextc it (lambda (x) nil))
      (deferred:error it
-       (lambda (x) 
+       (lambda (x)
          (destructuring-bind (sym msg) x
-         (if (and (eq sym 'error) 
+         (if (and (eq sym 'error)
                   (string-match "arith-error" msg)) t
            (format "Return : [%S]" x)))))
      (deferred:watch it dfinish))))
@@ -180,7 +180,7 @@
      (epc:call-deferred client-mngr 'some-method 0)
      (deferred:nextc it (lambda (x) nil))
      (deferred:error it
-       (lambda (x) 
+       (lambda (x)
          (destructuring-bind (sym msg) x
            (if (and (eq sym 'epc-error)
                     (string-match "^EPC-ERROR:" msg)) t
@@ -192,15 +192,15 @@
 (defun epc:test-epc-methods ()
   (epc:with-self-server-client
    (lambda (mngr)
-     (epc:define-method 
+     (epc:define-method
       mngr 'echo (lambda (xs) xs) "XS" "Return XS")
      (epc:define-method
       mngr 'add (lambda (xs) (apply '+ xs)) "XS.." "Sum XS"))
    (deferred:$
      (epc:query-methods-deferred client-mngr)
      (deferred:nextc it
-       (lambda (x) 
-         (if (equal x '((add "XS.." "Sum XS") 
+       (lambda (x)
+         (if (equal x '((add "XS.." "Sum XS")
                         (echo "XS" "Return XS"))) t
            (format "Return : [%s]" x))))
      (deferred:watch it dfinish))))
@@ -214,19 +214,19 @@
        (epc:call-deferred client-mngr 'echo (list 0))
        (deferred:nextc it
          (deferred:lambda (x)
-           (cond 
+           (cond
             ;; * test 1
             ;; waiting for finishing other threads
             ((< 1 (length epcs:server-processes))
              (deferred:nextc (deferred:wait 30) self))
             (t nil))))
-       (deferred:nextc it 
-         (lambda (x) 
+       (deferred:nextc it
+         (lambda (x)
            (setq server-count1 (length epcs:server-processes)
                  client-count1 (length epcs:client-processes))))
        (deferred:watch it dfinish)
        (deferred:nextc it
-         (lambda (x) 
+         (lambda (x)
            (setq server-count2 (length epcs:server-processes)
                  client-count2 (length epcs:client-processes))
            ;; * test 2
@@ -272,18 +272,18 @@
 ;; Async Test Framework (based on deferred.el)
 
 ;; * template
-;; 
+;;
 ;; (defun cc:test-template ()
 ;;   (lexical-let*
 ;;       ((dtest (deferred:new)) (x nil))
-;; 
+;;
 ;;     (deferred:callback dtest
 ;;       (if x t (format "Fail %s" x)))
-;; 
+;;
 ;;     dtest))
 ;; (cc:debug (cc:test-fib-gen) "Fib10 : %s" x)
 
-(defvar cc:test-functions 
+(defvar cc:test-functions
   '(
     epc:test-echo
     epc:test-echo-list
@@ -323,13 +323,13 @@
                    for name = (car i)
                    for result = (cdr i)
                    with fails = 0
-                   do (insert (format "%s : %s\n" name 
-                                      (if (eq t result) "OK" 
+                   do (insert (format "%s : %s\n" name
+                                      (if (eq t result) "OK"
                                         (format "FAIL > %s" result))))
                    (unless (eq t result) (incf fails))
-                   finally 
+                   finally
                    (goto-char (point-min))
-                   (insert (format "Test Finished : %3f sec (%s)\nTests Fails: %s / %s\n" 
+                   (insert (format "Test Finished : %3f sec (%s)\nTests Fails: %s / %s\n"
                                    (- (float-time) start-time)
                                    (format-time-string "%Y/%m/%d %H:%M:%S" (current-time))
                                    fails (length results)))
