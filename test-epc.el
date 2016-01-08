@@ -242,11 +242,12 @@
      `("-Q" "--batch"
        "-l" ,(expand-file-name "echo-server.el" epc:demo-dir)))))
 
-(defun epc:test-start-epc-deferred-success ()
-  (deferred:nextc (epc:test-start-echo-server)
-    (lambda (mngr)
-      (epc:stop-epc mngr)
-      t)))
+(ert-deftest epc:test-start-epc-deferred-success ()
+  (deferred:sync!
+    (deferred:nextc (epc:test-start-echo-server)
+      (lambda (mngr)
+        (epc:stop-epc mngr)
+        (should t)))))
 
 (defun epc:test-start-epc-deferred-fail ()
   (deferred:$
