@@ -72,7 +72,7 @@
      (deferred:watch it dfinish)
      (deferred:sync! it))))
 
-(defun epc:test-add ()
+(ert-deftest epc:test-add ()
   (epc:with-self-server-client
    (lambda (mngr)
      (epc:define-method mngr 'add '+))
@@ -80,9 +80,9 @@
      (epc:call-deferred client-mngr 'add '(1 2 3))
      (deferred:nextc it
        (lambda (x)
-         (if (equal 6 x) t
-           (format "Return : [%s]" x))))
-     (deferred:watch it dfinish))))
+         (should (equal 6 x))))
+     (deferred:watch it dfinish)
+     (deferred:sync! it))))
 
 (defun epc:test-deferred ()
   (epc:with-self-server-client
