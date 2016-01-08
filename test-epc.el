@@ -84,7 +84,7 @@
      (deferred:watch it dfinish)
      (deferred:sync! it))))
 
-(defun epc:test-deferred ()
+(ert-deftest epc:test-deferred ()
   (epc:with-self-server-client
    (lambda (mngr)
      (epc:define-method
@@ -94,11 +94,9 @@
      (epc:call-deferred client-mngr 'deferred '("OK?"))
      (deferred:nextc it
        (lambda (x)
-         (if (equal "OK" x) t
-           (format "Return : [%s]" x))))
-     (deferred:watch it dfinish))))
-
-;; (cc:debug (epc:test-deferred) "test-deferred %S" x)
+         (should (equal "OK" x))))
+     (deferred:watch it dfinish)
+     (deferred:sync! it))))
 
 (defun epc:test-large-data ()
   (lexical-let ((len (* 65536 2)))
