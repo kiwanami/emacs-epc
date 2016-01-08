@@ -149,7 +149,7 @@
      (deferred:watch it dfinish)
      (deferred:sync! it))))
 
-(defun epc:test-app-error ()
+(ert-deftest epc:test-app-error ()
   (epc:with-self-server-client
    (lambda (mngr)
      (epc:define-method mngr 'error-calc (lambda (x) (/ 1 0))))
@@ -159,12 +159,10 @@
      (deferred:error it
        (lambda (x)
          (destructuring-bind (sym msg) x
-         (if (and (eq sym 'error)
-                  (string-match "arith-error" msg)) t
-           (format "Return : [%S]" x)))))
-     (deferred:watch it dfinish))))
-
-;; (cc:debug (epc:test-app-error) "app-error %S" x)
+         (should (and (eq sym 'error)
+                      (string-match "arith-error" msg))))))
+     (deferred:watch it dfinish)
+     (deferred:sync! it))))
 
 (defun epc:test-epc-error ()
   (epc:with-self-server-client
