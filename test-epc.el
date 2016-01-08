@@ -178,7 +178,7 @@
      (deferred:watch it dfinish)
      (deferred:sync! it))))
 
-(defun epc:test-epc-methods ()
+(ert-deftest epc:test-epc-methods ()
   (epc:with-self-server-client
    (lambda (mngr)
      (epc:define-method
@@ -189,10 +189,10 @@
      (epc:query-methods-deferred client-mngr)
      (deferred:nextc it
        (lambda (x)
-         (if (equal x '((add "XS.." "Sum XS")
-                        (echo "XS" "Return XS"))) t
-           (format "Return : [%s]" x))))
-     (deferred:watch it dfinish))))
+         (should (equal x '((add "XS.." "Sum XS")
+                            (echo "XS" "Return XS"))))))
+     (deferred:watch it dfinish)
+     (deferred:sync! it))))
 
 (defun epc:test-epc-server-counts ()
   (lexical-let (server-count1 server-count2
