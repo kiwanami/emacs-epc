@@ -194,7 +194,7 @@
      (deferred:watch it dfinish)
      (deferred:sync! it))))
 
-(defun epc:test-epc-server-counts ()
+(ert-deftest epc:test-epc-server-counts ()
   (lexical-let (server-count1 server-count2
                 client-count1 client-count2)
     (epc:with-self-server-client
@@ -220,11 +220,9 @@
                  client-count2 (length epcs:client-processes))
            ;; * test 2
            ;; comparing connection numbers
-           (if (and (= 0 server-count2) (= 1 server-count1)
-                    (= 0 client-count2) (= 1 client-count1)) t
-             (format "server %s %s / client %s %s"
-                     server-count1 server-count2
-                     client-count1 client-count2))))))))
+           (should (and (= 0 server-count2) (= 1 server-count1)
+                        (= 0 client-count2) (= 1 client-count1)))))
+       (deferred:sync! it)))))
 
 (defun epc:test-start-echo-server ()
   (let ((emacs (concat invocation-directory invocation-name))
