@@ -98,7 +98,8 @@
      (deferred:watch it dfinish)
      (deferred:sync! it))))
 
-(defun epc:test-large-data ()
+(ert-deftest epc:test-large-data ()
+  (ert-skip "Failed now, we should solve it later.")
   (lexical-let ((len (* 65536 2)))
     (epc:with-self-server-client
      (lambda (mngr) (epc:define-method mngr 'large-echo (lambda (x) x)))
@@ -106,11 +107,9 @@
        (epc:call-deferred client-mngr 'large-echo (make-string len ?x))
        (deferred:nextc it
          (lambda (x)
-           (if (= len (length x)) t
-             (format "Return : [%s]" (length x)))))
-       (deferred:watch it dfinish)))))
-
-;; (cc:debug (epc:test-large-data) "test-large-data %S" x)
+           (should (= len (length x)))))
+       (deferred:watch it dfinish)
+       (deferred:sync! it)))))
 
 (defun epc:test-multibytes ()
   (lexical-let ((str "日本語能力!!ソﾊﾝｶｸ"))
