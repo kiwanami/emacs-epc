@@ -19,7 +19,7 @@
 ;;; Commentary:
 
 ;; Run tests:
-;; $ emacs -L . -L $HOME/.emacs.d/elisp -batch -l deferred -l concurrent -l epc -l epcs -l test-epc -f cc:test-all
+;; $ emacs -L . -L $HOME/.emacs.d/elisp -batch -l deferred -l concurrent -l epc -l epcs -l test-epc -f ert-run-tests-batch-and-exit
 
 ;;; Code:
 
