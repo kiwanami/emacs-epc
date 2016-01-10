@@ -12,7 +12,7 @@ test:	resolv
 		-l epc \
 		-l epcs \
 		-l test-epc \
-		-f cc:test-all
+		-f ert-run-tests-batch-and-exit
 
 resolv:	clean
 	git clone https://github.com/kiwanami/emacs-deferred.git \
