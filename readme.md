@@ -52,7 +52,7 @@ Here is a client code.
     (lambda (x) (message "Return : %S" x))))
 
 ;; calling synchronously
-(message "%S" (epc:call-sync epc 'echo '(10 40)))
+(message "%S" (epc:call-sync epc 'echo '(10)))
 
 ;; Request peer's methods
 (message "%S" (epc:sync epc (epc:query-methods-deferred epc)))
