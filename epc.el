@@ -50,6 +50,9 @@
 ;;(setq epc:debug-out t)
 ;;(setq epc:debug-out nil)
 
+(defvar epc:host "localhost"
+  "The host to use when connecting to epc processes.")
+
 (defun epc:log-init ()
   (when (get-buffer epc:debug-buffer)
     (kill-buffer epc:debug-buffer)))
@@ -419,7 +422,7 @@ to see full traceback:\n%s" port-str))
                       :commands (cons server-prog server-args)
                       :title (mapconcat 'identity (cons server-prog server-args) " ")
                       :port port
-                      :connection (epc:connect "localhost" port))))
+                      :connection (epc:connect epc:host port))))
 
 (defun epc:start-server-deferred (server-prog server-args)
   "[internal] Same as `epc:start-server' but start the server asynchronously."
@@ -462,7 +465,7 @@ to see full traceback:\n%s" port-str))
       (deferred:nextc it
         (lambda (_)
           (setf (epc:manager-port mngr) port)
-          (setf (epc:manager-connection mngr) (epc:connect "localhost" port))
+          (setf (epc:manager-connection mngr) (epc:connect epc:host port))
           mngr)))))
 
 (defun epc:stop-epc (mngr)
@@ -486,7 +489,7 @@ to see full traceback:\n%s" port-str))
    (make-epc:manager :server-process nil
                      :commands (cons "[DEBUG]" nil)
                      :port port
-                     :connection (epc:connect "localhost" port))))
+                     :connection (epc:connect epc:host port))))
 
 (defun epc:args (args)
   "[internal] If ARGS is an atom, return it. If list, return the cadr of it."
