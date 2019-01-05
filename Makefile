@@ -11,7 +11,7 @@ test:	resolv
 		-l concurrent \
 		-l epc \
 		-l epcs \
-		-l test-epc \
+		-l epc-tests \
 		-f ert-run-tests-batch-and-exit
 
 resolv:	clean
