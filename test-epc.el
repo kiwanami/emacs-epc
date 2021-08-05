@@ -25,7 +25,7 @@
 
 (require 'epc)
 (require 'epcs)
-(require 'cl)
+(require 'cl-lib)
 (require 'pp)
 
 
@@ -118,7 +118,7 @@
        (epc:define-method
         mngr 'echo
         (lambda (x) (cond ((equal x str) str)
-                          (t (error "Different content!"))))))
+                     (t (error "Different content!"))))))
      (deferred:$
        (epc:call-deferred client-mngr 'echo (list str))
        (deferred:nextc it
@@ -158,9 +158,9 @@
      (deferred:nextc it (lambda (x) nil))
      (deferred:error it
        (lambda (x)
-         (destructuring-bind (sym msg) x
-         (should (and (eq sym 'error)
-                      (string-match "arith-error" msg))))))
+         (cl-destructuring-bind (sym msg) x
+           (should (and (eq sym 'error)
+                        (string-match "arith-error" msg))))))
      (deferred:watch it dfinish)
      (deferred:sync! it))))
 
@@ -172,7 +172,7 @@
      (deferred:nextc it (lambda (x) nil))
      (deferred:error it
        (lambda (x)
-         (destructuring-bind (sym msg) x
+         (cl-destructuring-bind (sym msg) x
            (should (and (eq sym 'epc-error)
                         (string-match "^EPC-ERROR:" msg))))))
      (deferred:watch it dfinish)
@@ -196,7 +196,7 @@
 
 (ert-deftest epc:test-epc-server-counts ()
   (lexical-let (server-count1 server-count2
-                client-count1 client-count2)
+                              client-count1 client-count2)
     (epc:with-self-server-client
      (lambda (mngr) (epc:define-method mngr 'echo (lambda (x) x)))
      (deferred:$
@@ -230,12 +230,12 @@
     ;; See: (info "(emacs) General Variables")
     (setenv "EMACSLOADPATH"
             (mapconcat #'identity
-                       (loop for p in load-path
-                             for e = (expand-file-name p)
-                             ;; `file-directory-p' is required to suppress
-                             ;; Warning: Lisp directory `...' does not exist.
-                             when (file-directory-p e)
-                             collect e)
+                       (cl-loop for p in load-path
+                                for e = (expand-file-name p)
+                                ;; `file-directory-p' is required to suppress
+                                ;; Warning: Lisp directory `...' does not exist.
+                                when (file-directory-p e)
+                                collect e)
                        path-separator))
     (epc:start-epc-deferred
      emacs

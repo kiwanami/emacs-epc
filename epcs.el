@@ -24,11 +24,11 @@
 
 ;;; Code:
 
-(eval-when-compile (require 'cl))
+(eval-when-compile (require 'cl-lib))
 (require 'epc)
 
 (defvar epcs:client-processes nil
-  "[internal] A list of ([process object] . [`epc:manager' instance]).  
+  "[internal] A list of ([process object] . [`epc:manager' instance]).
 When the server process accepts the client connection, the
 `epc:manager' instance is created and stored in this variable
 `epcs:client-processes'. This variable is used for the management
@@ -86,18 +86,18 @@ This variable is used for the management purpose.")
 
 (defun epcs:get-manager-by-process (proc)
   "[internal] Return the epc:manager instance for the PROC."
-  (loop for (pp . mngr) in epcs:client-processes
-        if (eql pp proc)
-        do (return mngr)
-        finally return nil))
+  (cl-loop for (pp . mngr) in epcs:client-processes
+           if (eql pp proc)
+           do (cl-return mngr)
+           finally return nil))
 
 (defun epcs:kill-all-processes ()
   "Kill all child processes for debug purpose."
   (interactive)
-  (loop for (proc . mngr) in epcs:client-processes
-        do (ignore-errors
-             (delete-process proc)
-             (kill-buffer (process-buffer proc)))))
+  (cl-loop for (proc . mngr) in epcs:client-processes
+           do (ignore-errors
+                (delete-process proc)
+                (kill-buffer (process-buffer proc)))))
 
 (defun epcs:accept (process)
   "[internal] Initialize the process and return epc:manager object."
