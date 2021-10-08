@@ -1,4 +1,4 @@
-;;; test-epc.el --- test code for epc
+;;; test-epc.el --- test code for epc  -*- lexical-binding: t -*-
 
 ;; Copyright (C) 2011  SAKURAI Masashi
 ;; Author: SAKURAI Masashi <m.sakurai at kiwanami.net>
@@ -23,9 +23,10 @@
 
 ;;; Code:
 
+(require 'ert)
 (require 'epc)
 (require 'epcs)
-(require 'cl)
+(require 'cl-lib)
 (require 'pp)
 
 
@@ -37,14 +38,13 @@
 
 
 (defmacro epc:with-self-server-client (connect-function &rest body)
-  `(lexical-let*
-       ((server-process (epcs:server-start ,connect-function t))
-        (client-mngr (epc:start-epc-debug
-                      (process-contact
-                       server-process :service)))
-        (dfinish (lambda (x)
-                   (epc:stop-epc client-mngr)
-                   (epcs:server-stop server-process))))
+  `(let* ((server-process (epcs:server-start ,connect-function t))
+          (client-mngr (epc:start-epc-debug
+                        (process-contact
+                         server-process :service)))
+          (dfinish (lambda (x)
+                     (epc:stop-epc client-mngr)
+                     (epcs:server-stop server-process))))
      ,@body
      ))
 
@@ -100,7 +100,7 @@
 
 ;; (ert-deftest epc:test-large-data ()
 ;;   (ert-skip "Failed now, we should solve it later.")
-;;   (lexical-let ((len (* 65536 2)))
+;;   (let ((len (* 65536 2)))
 ;;     (epc:with-self-server-client
 ;;      (lambda (mngr) (epc:define-method mngr 'large-echo (lambda (x) x)))
 ;;      (deferred:$
@@ -112,7 +112,7 @@
 ;;        (deferred:sync! it)))))
 
 (ert-deftest epc:test-multibytes ()
-  (lexical-let ((str "日本語能力!!ソﾊﾝｶｸ"))
+  (let ((str "日本語能力!!ソﾊﾝｶｸ"))
     (epc:with-self-server-client
      (lambda (mngr)
        (epc:define-method
@@ -130,7 +130,7 @@
 (ert-deftest epc:test-ping-pong ()
   (epc:with-self-server-client
    (lambda (mngr)
-     (lexical-let ((mngr mngr))
+     (let ((mngr mngr))
        (epc:define-method
         mngr 'ping (lambda (x)
                      (epc:call-deferred mngr 'pong (list (1+ x)))))))
@@ -158,21 +158,21 @@
      (deferred:nextc it (lambda (x) nil))
      (deferred:error it
        (lambda (x)
-         (destructuring-bind (sym msg) x
-         (should (and (eq sym 'error)
-                      (string-match "arith-error" msg))))))
+         (cl-destructuring-bind (sym msg) x
+           (should (and (eq sym 'error)
+                        (string-match "arith-error" msg))))))
      (deferred:watch it dfinish)
      (deferred:sync! it))))
 
 (ert-deftest epc:test-epc-error ()
   (epc:with-self-server-client
-   (lambda (mngr) ) ; nothing
+   (lambda (mngr) )                     ; nothing
    (deferred:$
      (epc:call-deferred client-mngr 'some-method 0)
      (deferred:nextc it (lambda (x) nil))
      (deferred:error it
        (lambda (x)
-         (destructuring-bind (sym msg) x
+         (cl-destructuring-bind (sym msg) x
            (should (and (eq sym 'epc-error)
                         (string-match "^EPC-ERROR:" msg))))))
      (deferred:watch it dfinish)
@@ -195,8 +195,8 @@
      (deferred:sync! it))))
 
 (ert-deftest epc:test-epc-server-counts ()
-  (lexical-let (server-count1 server-count2
-                client-count1 client-count2)
+  (let ( server-count1 server-count2
+         client-count1 client-count2)
     (epc:with-self-server-client
      (lambda (mngr) (epc:define-method mngr 'echo (lambda (x) x)))
      (deferred:$
@@ -230,12 +230,12 @@
     ;; See: (info "(emacs) General Variables")
     (setenv "EMACSLOADPATH"
             (mapconcat #'identity
-                       (loop for p in load-path
-                             for e = (expand-file-name p)
-                             ;; `file-directory-p' is required to suppress
-                             ;; Warning: Lisp directory `...' does not exist.
-                             when (file-directory-p e)
-                             collect e)
+                       (cl-loop for p in load-path
+                                for e = (expand-file-name p)
+                                ;; `file-directory-p' is required to suppress
+                                ;; Warning: Lisp directory `...' does not exist.
+                                when (file-directory-p e)
+                                collect e)
                        path-separator))
     (epc:start-epc-deferred
      emacs
