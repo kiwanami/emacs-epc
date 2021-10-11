@@ -212,7 +212,7 @@ return epc:connection object."
          (if (featurep 'xemacs) itimer-short-interval 0)
          nil function args))
 
-(defun epc:net-read-or-lose (process)
+(defun epc:net-read-or-lose (_process)
   (condition-case error
       (epc:net-read)
     (error
@@ -224,7 +224,7 @@ return epc:connection object."
   (goto-char (point-min))
   (let* ((length (epc:net-decode-length))
          (start (+ 6 (point)))
-         (end (+ start length)) content)
+         (end (+ start length)) _content)
     (cl-assert (cl-plusp length))
     (prog1 (save-restriction
              (narrow-to-region start end)
@@ -602,7 +602,7 @@ HOOK-FUNCTION is a function with no argument."
 (defun epc:handler-called-method (mngr uid name args)
   "[internal] low-level message handler for peer's calling."
   (let ((mngr mngr) (uid uid))
-    (let* ((methods (epc:manager-methods mngr))
+    (let* ((_methods (epc:manager-methods mngr))
            (method (epc:manager-get-method mngr name)))
       (cond
        ((null method)
