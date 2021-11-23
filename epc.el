@@ -1,4 +1,4 @@
-;;; epc.el --- A RPC stack for the Emacs Lisp
+;;; epc.el --- A RPC stack for the Emacs Lisp   -*- lexical-binding: t -*-
 
 ;; Copyright (C) 2011, 2012, 2013  Masashi Sakurai
 
@@ -34,13 +34,13 @@
 
 ;;; Code:
 
-(eval-when-compile (require 'cl))
+(eval-when-compile (require 'cl-lib))
 (require 'concurrent)
 (require 'ctable)
 
 
 ;;==================================================
-;; Utility 
+;; Utility
 
 (defvar epc:debug-out nil)
 (defvar epc:debug-buffer "*epc log*")
@@ -83,7 +83,7 @@
 (defvar epc:uid 1)
 
 (defun epc:uid ()
-  (incf epc:uid))
+  (cl-incf epc:uid))
 
 (defvar epc:accept-process-timeout 150  "Asynchronous timeout time. (msec)")
 (defvar epc:accept-process-timeout-count 100 " Startup function waits (`epc:accept-process-timeout' * `epc:accept-process-timeout-count') msec for the external process getting ready.")
@@ -91,7 +91,7 @@
 (put 'epc-error 'error-conditions '(error epc-error))
 (put 'epc-error 'error-message "EPC Error")
 
-(defstruct epc:connection
+(cl-defstruct epc:connection
   "Set of information for network connection and event handling.
 
 name    : Connection name. This name is used for process and buffer names.
@@ -125,24 +125,24 @@ channel : Event channels for incoming messages."
   "[internal] Connect the server, initialize the process and
 return epc:connection object."
   (epc:log ">> Connection start: %s:%s" host port)
-  (lexical-let* ((connection-id (epc:uid))
-                 (connection-name (format "epc con %s" connection-id))
-                 (connection-buf (epc:make-procbuf (format "*%s*" connection-name)))
-                 (connection-process
-                  (open-network-stream connection-name connection-buf host port))
-                 (channel (cc:signal-channel connection-name))
-                 (connection (make-epc:connection 
-                              :name connection-name
-                              :process connection-process
-                              :buffer connection-buf
-                              :channel channel)))
+  (let* ((connection-id (epc:uid))
+         (connection-name (format "epc con %s" connection-id))
+         (connection-buf (epc:make-procbuf (format "*%s*" connection-name)))
+         (connection-process
+          (open-network-stream connection-name connection-buf host port))
+         (channel (cc:signal-channel connection-name))
+         (connection (make-epc:connection
+                      :name connection-name
+                      :process connection-process
+                      :buffer connection-buf
+                      :channel channel)))
     (epc:log ">> Connection establish")
     (set-process-coding-system  connection-process 'binary 'binary)
-    (set-process-filter connection-process 
+    (set-process-filter connection-process
                         (lambda (p m)
                           (epc:process-filter connection p m)))
     (set-process-sentinel connection-process
-                          (lambda (p e) 
+                          (lambda (p e)
                             (epc:process-sentinel connection p e)))
     (set-process-query-on-exit-flag connection-process nil)
     connection))
@@ -153,12 +153,12 @@ return epc:connection object."
   connection)
 
 (defun epc:process-sentinel (connection process msg)
-  (epc:log "!! Process Sentinel [%s] : %S : %S"  
+  (epc:log "!! Process Sentinel [%s] : %S : %S"
            (epc:connection-name connection) process msg)
   (epc:disconnect connection))
 
 (defun epc:net-send (connection sexp)
-  (let* ((msg (encode-coding-string 
+  (let* ((msg (encode-coding-string
                (concat (epc:prin1-to-string sexp) "\n") 'utf-8-unix))
          (string (concat (epc:net-encode-length (length msg)) msg))
          (proc (epc:connection-process connection)))
@@ -166,10 +166,9 @@ return epc:connection object."
     (process-send-string proc string)))
 
 (defun epc:disconnect (connection)
-  (lexical-let
-      ((process (epc:connection-process connection))
-       (buf (epc:connection-buffer connection))
-       (name (epc:connection-name connection)))
+  (let ((process (epc:connection-process connection))
+        (buf (epc:connection-buffer connection))
+        (name (epc:connection-name connection)))
     (epc:log "!! Disconnect [%s]" name)
     (when process
       (set-process-sentinel process nil)
@@ -194,7 +193,7 @@ return epc:connection object."
         (unwind-protect
             (condition-case err
                 (progn
-                  (apply 'cc:signal-send 
+                  (apply 'cc:signal-send
                          (cons (epc:connection-channel connection) event))
                   (setq ok t))
               ('error (epc:log "MsgError: %S / <= %S" err event)))
@@ -209,11 +208,11 @@ return epc:connection object."
 
 (defun epc:run-when-idle (function &rest args)
   "Call FUNCTION as soon as Emacs is idle."
-  (apply #'run-at-time 
-         (if (featurep 'xemacs) itimer-short-interval 0) 
+  (apply #'run-at-time
+         (if (featurep 'xemacs) itimer-short-interval 0)
          nil function args))
 
-(defun epc:net-read-or-lose (process)
+(defun epc:net-read-or-lose (_process)
   (condition-case error
       (epc:net-read)
     (error
@@ -225,11 +224,11 @@ return epc:connection object."
   (goto-char (point-min))
   (let* ((length (epc:net-decode-length))
          (start (+ 6 (point)))
-         (end (+ start length)) content)
-    (assert (plusp length))
+         (end (+ start length)) _content)
+    (cl-assert (cl-plusp length))
     (prog1 (save-restriction
              (narrow-to-region start end)
-             (read (decode-coding-string 
+             (read (decode-coding-string
                     (buffer-string) 'utf-8-unix)))
       (delete-region (point-min) end))))
 
@@ -247,7 +246,7 @@ This is more compatible with the CL reader."
   (with-temp-buffer
     (let (print-escape-nonascii
           print-escape-newlines
-          print-length 
+          print-length
           print-level)
       (prin1 sexp (current-buffer))
       (buffer-string))))
@@ -256,7 +255,7 @@ This is more compatible with the CL reader."
 ;;==================================================
 ;; High Level Interface
 
-(defstruct epc:manager
+(cl-defstruct epc:manager
   "Root object that holds all information related to an EPC activity.
 
 `epc:start-epc' returns this object.
@@ -319,7 +318,7 @@ Use `epc:manager-add-exit-hook' to add hook.
 
 \(fn EPC:MANAGER)")
 
-(defstruct epc:method
+(cl-defstruct epc:method
   "Object to hold serving method information.
 
 name       : method name (symbol)   ex: 'test
@@ -351,7 +350,7 @@ docstring  : docstring (one string) ex: \"A test function. Return sum of A,B,C a
 
 
 (defvar epc:live-connections nil
-  "[internal] A list of `epc:manager' objects those currently connect to the epc peer. 
+  "[internal] A list of `epc:manager' objects those currently connect to the epc peer.
 This variable is for debug purpose.")
 
 (defun epc:live-connections-add (mngr)
@@ -393,7 +392,7 @@ failure."
          (process-name (epc:server-process-name uid))
          (process-buffer (get-buffer-create (epc:server-buffer-name uid)))
          (process (apply 'start-process
-                         process-name process-buffer 
+                         process-name process-buffer
                          server-prog server-args))
          (cont 1) port)
     (while cont
@@ -411,7 +410,7 @@ to see full traceback:\n%s" port-str))
          ((not (eq 'run (process-status process)))
           (setq cont nil))
          (t
-          (incf cont)
+          (cl-incf cont)
           (when (< epc:accept-process-timeout-count cont) ; timeout 15 seconds
             (error "Timeout server response."))))))
     (set-process-query-on-exit-flag process nil)
@@ -423,18 +422,17 @@ to see full traceback:\n%s" port-str))
 
 (defun epc:start-server-deferred (server-prog server-args)
   "[internal] Same as `epc:start-server' but start the server asynchronously."
-  (lexical-let*
-      ((uid (epc:uid))
-       (process-name (epc:server-process-name uid))
-       (process-buffer (get-buffer-create (epc:server-buffer-name uid)))
-       (process (apply 'start-process
-                       process-name process-buffer
-                       server-prog server-args))
-       (mngr (make-epc:manager
-              :server-process process
-              :commands (cons server-prog server-args)
-              :title (mapconcat 'identity (cons server-prog server-args) " ")))
-       (cont 1) port)
+  (let* ((uid (epc:uid))
+         (process-name (epc:server-process-name uid))
+         (process-buffer (get-buffer-create (epc:server-buffer-name uid)))
+         (process (apply 'start-process
+                         process-name process-buffer
+                         server-prog server-args))
+         (mngr (make-epc:manager
+                :server-process process
+                :commands (cons server-prog server-args)
+                :title (mapconcat 'identity (cons server-prog server-args) " ")))
+         (cont 1) port)
     (set-process-query-on-exit-flag process nil)
     (deferred:$
       (deferred:next
@@ -453,7 +451,7 @@ to see full traceback:\n%s" port-str))
              ((not (eq 'run (process-status process)))
               (setq cont nil))
              (t
-              (incf cont)
+              (cl-incf cont)
               (when (< epc:accept-process-timeout-count cont)
                 ;; timeout 15 seconds
                 (error "Timeout server response."))
@@ -490,40 +488,39 @@ to see full traceback:\n%s" port-str))
 
 (defun epc:args (args)
   "[internal] If ARGS is an atom, return it. If list, return the cadr of it."
-  (cond 
+  (cond
    ((atom args) args)
    (t (cadr args))))
 
 (defun epc:init-epc-layer (mngr)
   "[internal] Connect to the server program and return an epc:connection instance."
-  (lexical-let*
-      ((mngr mngr)
-       (conn (epc:manager-connection mngr))
-       (channel (epc:connection-channel conn)))
+  (let* ((mngr mngr)
+         (conn (epc:manager-connection mngr))
+         (channel (epc:connection-channel conn)))
     ;; dispatch incoming messages with the lexical scope
-    (loop for (method . body) in
-          `((call 
-             . (lambda (args)
-                 (epc:log "SIG CALL: %S" args)
-                 (apply 'epc:handler-called-method ,mngr (epc:args args))))
-            (return
-             . (lambda (args)
-                 (epc:log "SIG RET: %S" args)
-                 (apply 'epc:handler-return ,mngr (epc:args args))))
-            (return-error
-             . (lambda (args)
-                 (epc:log "SIG RET-ERROR: %S" args)
-                 (apply 'epc:handler-return-error ,mngr (epc:args args))))
-            (epc-error
-             . (lambda (args)
-                 (epc:log "SIG EPC-ERROR: %S" args)
-                 (apply 'epc:handler-epc-error ,mngr (epc:args args))))
-            (methods
-             . (lambda (args)
-                 (epc:log "SIG METHODS: %S" args)
-                 (epc:handler-methods ,mngr (caadr args))))
-            ) do
-              (cc:signal-connect channel method body))
+    (cl-loop for (method . body) in
+             `((call
+                . (lambda (args)
+                    (epc:log "SIG CALL: %S" args)
+                    (apply 'epc:handler-called-method ,mngr (epc:args args))))
+               (return
+                . (lambda (args)
+                    (epc:log "SIG RET: %S" args)
+                    (apply 'epc:handler-return ,mngr (epc:args args))))
+               (return-error
+                . (lambda (args)
+                    (epc:log "SIG RET-ERROR: %S" args)
+                    (apply 'epc:handler-return-error ,mngr (epc:args args))))
+               (epc-error
+                . (lambda (args)
+                    (epc:log "SIG EPC-ERROR: %S" args)
+                    (apply 'epc:handler-epc-error ,mngr (epc:args args))))
+               (methods
+                . (lambda (args)
+                    (epc:log "SIG METHODS: %S" args)
+                    (epc:handler-methods ,mngr (caadr args))))
+               ) do
+             (cc:signal-connect channel method body))
     (epc:live-connections-add mngr)
     mngr))
 
@@ -552,7 +549,7 @@ HOOK-FUNCTION is a function with no argument."
 (defun epc:manager-status-connection-process (mngr)
   "[internal] Return the status of the process object for the connection process."
   (and (epc:manager-connection mngr)
-       (process-status (epc:connection-process 
+       (process-status (epc:connection-process
                         (epc:manager-connection mngr)))))
 
 (defun epc:manager-restart-process (mngr)
@@ -587,25 +584,25 @@ HOOK-FUNCTION is a function with no argument."
 
 (defun epc:manager-get-method (mngr method-name)
   "[internal] Return a method object. If not found, return nil."
-  (loop for i in (epc:manager-methods mngr)
-        if (eq method-name (epc:method-name i))
-        do (return i)))
+  (cl-loop for i in (epc:manager-methods mngr)
+           if (eq method-name (epc:method-name i))
+           do (cl-return i)))
 
 (defun epc:handler-methods (mngr uid)
   "[internal] Return a list of information for registered methods."
   (let ((info
-         (loop for i in (epc:manager-methods mngr)
-               collect 
-               (list
-                (epc:method-name i)
-                (or (epc:method-arg-specs i) "")
-                (or (epc:method-docstring i) "")))))
+         (cl-loop for i in (epc:manager-methods mngr)
+                  collect
+                  (list
+                   (epc:method-name i)
+                   (or (epc:method-arg-specs i) "")
+                   (or (epc:method-docstring i) "")))))
     (epc:manager-send mngr 'return uid info)))
-        
+
 (defun epc:handler-called-method (mngr uid name args)
   "[internal] low-level message handler for peer's calling."
-  (lexical-let ((mngr mngr) (uid uid))
-    (let* ((methods (epc:manager-methods mngr))
+  (let ((mngr mngr) (uid uid))
+    (let* ((_methods (epc:manager-methods mngr))
            (method (epc:manager-get-method mngr name)))
       (cond
        ((null method)
@@ -620,18 +617,18 @@ HOOK-FUNCTION is a function with no argument."
                 (deferred:nextc ret
                   (lambda (xx) (epc:manager-send mngr 'return uid xx))))
                (t (epc:manager-send mngr 'return uid ret))))
-            (error 
-             (epc:log "ERROR : %S" err)
-             (epc:manager-send mngr 'return-error uid err))))))))
+          (error
+           (epc:log "ERROR : %S" err)
+           (epc:manager-send mngr 'return-error uid err))))))))
 
 (defun epc:manager-remove-session (mngr uid)
   "[internal] Remove a session from the epc manager object."
-  (loop with ret = nil
-        for pair in (epc:manager-sessions mngr)
-        unless (eq uid (car pair)) 
-        do (push pair ret)
-        finally 
-        do (setf (epc:manager-sessions mngr) ret)))
+  (cl-loop with ret = nil
+           for pair in (epc:manager-sessions mngr)
+           unless (eq uid (car pair))
+           do (push pair ret)
+           finally
+           do (setf (epc:manager-sessions mngr) ret)))
 
 (defun epc:handler-return (mngr uid args)
   "[internal] low-level message handler for normal returns."
@@ -681,16 +678,16 @@ object which is called with the result."
 
 (defun epc:define-method (mngr method-name task &optional arg-specs docstring)
   "Define a method and return a deferred object which is called by the peer."
-  (let* ((method (make-epc:method 
-                  :name method-name :task task 
+  (let* ((method (make-epc:method
+                  :name method-name :task task
                   :arg-specs arg-specs :docstring docstring))
          (methods (cons method (epc:manager-methods mngr))))
     (setf (epc:manager-methods mngr) methods)
     method))
 
 (defun epc:query-methods-deferred (mngr)
-  "Return a list of information for the peer's methods. 
-The list is consisted of lists of strings: 
+  "Return a list of information for the peer's methods.
+The list is consisted of lists of strings:
  (name arg-specs docstring)."
   (let ((uid (epc:uid))
         (sessions (epc:manager-sessions mngr))
@@ -703,7 +700,7 @@ The list is consisted of lists of strings:
 (defun epc:sync (mngr d)
   "Wrap deferred methods with synchronous waiting, and return the result.
 If an exception is occurred, this function throws the error."
-  (lexical-let ((result 'epc:nothing))
+  (let ((result 'epc:nothing))
     (deferred:$ d
       (deferred:nextc it
         (lambda (x) (setq result x)))
@@ -711,10 +708,10 @@ If an exception is occurred, this function throws the error."
         (lambda (er) (setq result (cons 'error er)))))
     (while (eq result 'epc:nothing)
       (save-current-buffer
-        (accept-process-output 
+        (accept-process-output
          (epc:connection-process (epc:manager-connection mngr))
          0 epc:accept-process-timeout t)))
-    (if (and (consp result) (eq 'error (car result))) 
+    (if (and (consp result) (eq 'error (car result)))
         (error (cdr result)) result)))
 
 (defun epc:call-sync (mngr method-name args)
@@ -769,10 +766,10 @@ Restart process."
 
 (defun epc:controller-update-buffer (buf)
   "[internal] Update buffer for the current epc processes."
-  (let* 
-      ((data (loop
+  (let*
+      ((data (cl-loop
               for mngr in epc:live-connections collect
-              (list 
+              (list
                (epc:manager-server-process mngr)
                (epc:manager-status-server-process mngr)
                (epc:manager-status-connection-process mngr)
@@ -835,7 +832,7 @@ Restart process."
 (defun epc:controller-connection-buffer-command ()
   (interactive)
   (epc:controller-with-cp
-    (switch-to-buffer 
+    (switch-to-buffer
      (epc:connection-buffer (epc:manager-connection mngr)))))
 
 (defun epc:controller-methods-show-command ()
@@ -851,7 +848,7 @@ Restart process."
       (setq buf (get-buffer-create buf-name))
       (with-current-buffer buf
         (setq buffer-read-only t)))
-    (lexical-let ((buf buf) (mngr mngr))
+    (let ((buf buf) (mngr mngr))
       (deferred:$
         (epc:query-methods-deferred mngr)
         (deferred:nextc it
@@ -869,17 +866,17 @@ Restart process."
 (defun epc:controller-methods-update-buffer (buf mngr methods)
   "[internal] Update methods list buffer for the epc process."
   (with-current-buffer buf
-    (let* ((data 
-            (loop for m in methods collect
-                  (list 
-                   (car m)
-                   (or (nth 1 m) "<Not specified>")
-                   (or (nth 2 m) "<Not specified>"))))
+    (let* ((data
+            (cl-loop for m in methods collect
+                     (list
+                      (car m)
+                      (or (nth 1 m) "<Not specified>")
+                      (or (nth 2 m) "<Not specified>"))))
            (param (copy-ctbl:param ctbl:default-rendering-param))
            cp buffer-read-only)
       (erase-buffer)
-      (insert 
-       (propertize 
+      (insert
+       (propertize
         (format "EPC Process : %s\n"
                 (mapconcat 'identity (epc:manager-commands mngr) " "))
         'face 'epc:face-title) "\n")
@@ -914,12 +911,12 @@ Restart process."
 (defun epc:define-keymap (keymap-list &optional prefix)
   "[internal] Keymap utility."
   (let ((map (make-sparse-keymap)))
-    (mapc 
+    (mapc
      (lambda (i)
        (define-key map
          (if (stringp (car i))
-             (read-kbd-macro 
-              (if prefix 
+             (read-kbd-macro
+              (if prefix
                   (replace-regexp-in-string "prefix" prefix (car i))
                 (car i)))
            (car i))
@@ -928,18 +925,18 @@ Restart process."
     map))
 
 (defun epc:add-keymap (keymap keymap-list &optional prefix)
-  (loop with nkeymap = (copy-keymap keymap)
-        for i in keymap-list
-        do
-        (define-key nkeymap
-          (if (stringp (car i))
-              (read-kbd-macro 
-               (if prefix 
-                   (replace-regexp-in-string "prefix" prefix (car i))
-                 (car i)))
-            (car i))
-          (cdr i))
-        finally return nkeymap))
+  (cl-loop with nkeymap = (copy-keymap keymap)
+           for i in keymap-list
+           do
+           (define-key nkeymap
+             (if (stringp (car i))
+                 (read-kbd-macro
+                  (if prefix
+                      (replace-regexp-in-string "prefix" prefix (car i))
+                    (car i)))
+               (car i))
+             (cdr i))
+           finally return nkeymap))
 
 (defvar epc:controller-keymap
   (epc:define-keymap
